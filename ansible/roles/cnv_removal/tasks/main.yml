@@ -1,0 +1,45 @@
+---
+# Removes OpenShift Virtualization in the order the product docs use:
+# workloads -> HyperConverged CR -> Subscription/CSV -> namespace -> orphan CRDs.
+# OLM objects (Subscription/CSV) are plain CRs, so kubernetes.core.k8s is enough;
+# no `oc` and no redhat.openshift collection needed here.
+- name: Detect OpenShift Virtualization and MTV
+  ansible.builtin.include_role:
+    name: preflight
+    tasks_from: cnv_mtv.yml
+  vars:
+    pf_blockers: []
+    pf_warnings: []
+
+- name: Nothing to do when OpenShift Virtualization is not installed
+  ansible.builtin.debug:
+    msg: "OpenShift Virtualization is not installed: skipping removal."
+  when: not pf_cnv_installed | bool
+
+- name: Remove OpenShift Virtualization
+  when: pf_cnv_installed | bool
+  block:
+    - name: Stop if MTV is installed
+      ansible.builtin.fail:
+        msg: >-
+          Migration Toolkit for Virtualization (MTV) is installed and depends on
+          OpenShift Virtualization. Remove MTV first (or keep CNV). Nothing was changed.
+      when: pf_mtv_installed | bool
+
+    - name: Require explicit confirmation
+      ansible.builtin.assert:
+        that: confirm_cnv_removal | bool
+        fail_msg: >-
+          OpenShift Virtualization is installed. Removing it DELETES these VMs:
+          {{ pf_existing_vms | join(', ') or 'none' }}. Re-run with
+          -e confirm_cnv_removal=true (add --check first to preview).
+        quiet: true
+
+    - name: Workloads (VMs, VMIs, DataVolumes, DataSources, DataImportCrons)
+      ansible.builtin.import_tasks: workloads.yml
+
+    - name: HyperConverged CR and OLM objects
+      ansible.builtin.import_tasks: operator.yml
+
+    - name: Orphan CRDs, APIServices, webhooks and SCCs
+      ansible.builtin.import_tasks: leftovers.yml

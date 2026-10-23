@@ -1,0 +1,66 @@
+---
+- name: List nodes
+  kubernetes.core.k8s_info:
+    kind: Node
+  register: pf_nodes_raw
+
+- name: List running pods (to compute requested CPU/RAM per node)
+  kubernetes.core.k8s_info:
+    kind: Pod
+    field_selectors:
+      - status.phase!=Succeeded
+      - status.phase!=Failed
+  register: pf_pods_raw
+
+- name: Analyse nodes (first pass, labels only)
+  ansible.builtin.set_fact:
+    pf_nodes: "{{ pf_nodes_raw.resources | preflight_nodes(pf_pods_raw.resources, preflight_exclude_odf_nodes | bool) }}"
+
+- name: Workers where labels can't tell /dev/kvm
+  ansible.builtin.set_fact:
+    pf_unknown_kvm: "{{ pf_nodes | selectattr('roles', 'contains', 'worker') | selectattr('kvm', 'none') | map(attribute='name') | list }}"
+
+- name: Probe workers with a short-lived privileged pod
+  ansible.builtin.include_tasks: probe.yml
+  when:
+    - preflight_node_probe | bool
+    - pf_unknown_kvm | length > 0
+    - not ansible_check_mode
+
+- name: Analyse nodes (with probe results)
+  ansible.builtin.set_fact:
+    pf_nodes: "{{ pf_nodes_raw.resources | preflight_nodes(pf_pods_raw.resources, preflight_exclude_odf_nodes | bool, pf_probe) }}"
+  when: pf_probe | length > 0
+
+- name: Split workers into eligible / not eligible
+  ansible.builtin.set_fact:
+    pf_workers: "{{ pf_nodes | selectattr('roles', 'contains', 'worker') | list }}"
+    pf_eligible: "{{ pf_nodes | selectattr('eligible') | list }}"
+    pf_odf_nodes: "{{ pf_nodes | selectattr('odf') | map(attribute='name') | list }}"
+
+- name: Warn when /dev/kvm is unknown
+  ansible.builtin.set_fact:
+    pf_warnings: "{{ pf_warnings + ['/dev/kvm unknown on: ' ~ (pf_eligible | selectattr('kvm', 'none') | map(attribute='name') | join(', ')) ~ '. Rerun with -e preflight_node_probe=true or check after KubeVirt is installed.'] }}"
+  when: pf_eligible | selectattr('kvm', 'none') | list | length > 0
+
+- name: Flag fewer than 2 VM-eligible workers (live migration disabled)
+  ansible.builtin.set_fact:
+    pf_warnings: "{{ pf_warnings + ['Only ' ~ (pf_eligible | length) ~ ' worker(s) can run VMs: live migration steps will be DISABLED (enable_live_migration=false).'] }}"
+  when: pf_eligible | length < 2
+
+- name: Flag no VM-eligible workers
+  ansible.builtin.set_fact:
+    pf_blockers: "{{ pf_blockers + ['No worker can run VMs (see the node table in the report).'] }}"
+  when: pf_eligible | length == 0
+
+- name: Capacity needed by the demo VMs
+  ansible.builtin.set_fact:
+    pf_demo_vm_count: "{{ 3 + (clone_count | int) + (1 if enable_secondary_net | bool else 0) }}"
+    pf_demo_mem_needed: "{{ ((3 + (clone_count | int) + (1 if enable_secondary_net | bool else 0)) * ((vm_memory | k8s_mem_to_bytes) + preflight_vm_overhead_mib * 1048576)) | int }}"
+    pf_eligible_mem_free: "{{ pf_eligible | map(attribute='mem_free') | sum }}"
+    pf_eligible_cpu_free: "{{ pf_eligible | map(attribute='cpu_free_m') | sum }}"
+
+- name: Flag not enough free memory on eligible workers
+  ansible.builtin.set_fact:
+    pf_warnings: "{{ pf_warnings + ['Eligible workers have ' ~ (pf_eligible_mem_free | human_bytes) ~ ' of unrequested RAM; the demo needs about ' ~ (pf_demo_mem_needed | human_bytes) ~ ' for ' ~ pf_demo_vm_count ~ ' VMs.'] }}"
+  when: (pf_eligible_mem_free | int) < (pf_demo_mem_needed | int)

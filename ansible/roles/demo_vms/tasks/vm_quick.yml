@@ -1,0 +1,6 @@
+---
+- name: VirtualMachine vm-quick (containerDisk + cloud-init)
+  kubernetes.core.k8s:
+    state: present
+    apply: true
+    definition: "{{ lookup('ansible.builtin.template', 'vm-quick.yaml.j2') | from_yaml }}"

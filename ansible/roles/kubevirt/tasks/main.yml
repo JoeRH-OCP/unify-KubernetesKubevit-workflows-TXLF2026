@@ -1,0 +1,47 @@
+---
+- name: Install the KubeVirt operator {{ kubevirt_version }}
+  ansible.builtin.include_tasks: apply_manifest.yml
+  vars:
+    manifest_url: "{{ kubevirt_release_url }}/kubevirt-operator.yaml"
+    manifest_file: "kubevirt-operator-{{ kubevirt_version }}.yaml"
+    manifest_namespace_labels: "{{ kubevirt_namespace_labels }}"
+
+- name: Wait for virt-operator
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    namespace: "{{ kubevirt_namespace }}"
+    name: virt-operator
+    wait: true
+    wait_condition:
+      type: Available
+      status: "True"
+    wait_timeout: 600
+
+- name: Apply the KubeVirt CR and wait until it is Available
+  kubernetes.core.k8s:
+    state: present
+    apply: true
+    server_side_apply:
+      field_manager: "{{ kubevirt_field_manager }}"
+      force_conflicts: true
+    definition: "{{ lookup('ansible.builtin.template', 'kubevirt-cr.yaml.j2') | from_yaml }}"
+    wait: true
+    wait_condition:
+      type: Available
+      status: "True"
+    wait_timeout: "{{ kubevirt_wait_timeout }}"
+
+- name: Read KubeVirt status
+  kubernetes.core.k8s_info:
+    api_version: kubevirt.io/v1
+    kind: KubeVirt
+    namespace: "{{ kubevirt_namespace }}"
+    name: kubevirt
+  register: kubevirt_status
+
+- name: Show KubeVirt status
+  ansible.builtin.debug:
+    msg: >-
+      KubeVirt {{ kubevirt_status.resources[0].status.observedKubeVirtVersion | default('?') }}
+      phase={{ kubevirt_status.resources[0].status.phase | default('?') }}

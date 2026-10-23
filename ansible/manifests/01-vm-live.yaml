@@ -1,0 +1,60 @@
+# A VM from a container image, created live with `kubectl apply`.
+#   kubectl apply -f manifests/01-vm-live.yaml
+#   kubectl -n demo-vms get vm,vmi vm-live -w
+#   virtctl -n demo-vms ssh fedora@vm/vm-live
+---
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: vm-live
+  namespace: demo-vms
+  labels:
+    app.kubernetes.io/part-of: txlf-2026
+    app.kubernetes.io/component: vm-live
+spec:
+  runStrategy: Always
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: txlf-2026
+        app.kubernetes.io/component: vm-live
+    spec:
+      domain:
+        cpu:
+          cores: 1
+        memory:
+          guest: 2Gi
+        devices:
+          disks:
+            - name: containerdisk
+              disk:
+                bus: virtio
+            - name: cloudinit
+              disk:
+                bus: virtio
+          interfaces:
+            - name: default
+              masquerade: {}
+      networks:
+        - name: default
+          pod: {}
+      accessCredentials:
+        - sshPublicKey:
+            source:
+              secret:
+                secretName: demo-ssh-key
+            propagationMethod:
+              noCloud: {}
+      volumes:
+        - name: containerdisk
+          containerDisk:
+            image: quay.io/containerdisks/fedora:44-1.7
+        - name: cloudinit
+          cloudInitNoCloud:
+            userData: |
+              #cloud-config
+              hostname: vm-live
+              write_files:
+                - path: /etc/motd
+                  content: |
+                    Texas Linux Fest 2026 - created live with kubectl apply

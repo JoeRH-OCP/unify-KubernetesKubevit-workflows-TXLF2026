@@ -1,0 +1,9 @@
+# Paths are relative to this ansible/ folder.
+.cache/
+collections/
+context/
+reports/*
+!reports/.gitkeep
+*.retry
+.DS_Store
+__pycache__/

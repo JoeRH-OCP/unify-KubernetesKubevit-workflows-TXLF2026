@@ -1,0 +1,56 @@
+---
+- name: Resolve the Ingress domain
+  ansible.builtin.include_tasks: "{{ role_path }}/../demo_vms/tasks/ingress_domain.yml"
+  when: demo_ingress_domain is not defined
+
+- name: Namespace
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ kubevirt_manager_namespace }}"
+        labels: "{{ event_labels | combine({'app': 'kubevirt-manager'}) }}"
+
+- name: Upstream CRDs, RBAC and PriorityClasses (v{{ kubevirt_manager_version }})
+  ansible.builtin.include_role:
+    name: kubevirt
+    tasks_from: apply_manifest.yml
+  vars:
+    manifest_url: "{{ kubevirt_manager_manifests_url }}/{{ item }}"
+    manifest_file: "kubevirt-manager-{{ kubevirt_manager_version }}-{{ item }}"
+  loop: [crd.yaml, rbac.yaml, pc.yaml]
+
+- name: Basic auth credentials
+  ansible.builtin.import_tasks: auth.yml
+
+- name: Branding assets and nginx config
+  ansible.builtin.import_tasks: branding.yml
+
+- name: Deployment, Service and Ingress
+  kubernetes.core.k8s:
+    state: present
+    apply: true
+    definition: "{{ lookup('ansible.builtin.template', item) | from_yaml }}"
+  loop:
+    - deployment.yaml.j2
+    - service.yaml.j2
+    - ingress.yaml.j2
+
+- name: Wait for kubevirt-manager to be Available
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    namespace: "{{ kubevirt_manager_namespace }}"
+    name: kubevirt-manager
+    wait: true
+    wait_condition:
+      type: Available
+      status: "True"
+    wait_timeout: 600
+  when: not ansible_check_mode
+
+- name: Show the kubevirt-manager URL
+  ansible.builtin.debug:
+    msg: "https://{{ kubevirt_manager_host }}  (user: {{ kubevirt_manager_auth_user }}, password in {{ kubevirt_manager_password_file if not kubevirt_manager_auth_password else 'kubevirt_manager_auth_password' }})"

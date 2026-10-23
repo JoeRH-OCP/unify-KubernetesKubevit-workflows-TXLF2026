@@ -1,0 +1,12 @@
+---
+# Read-only checks. Writes reports/preflight.md. Never fails on blockers.
+#   ansible-navigator run preflight.yml
+- name: TXLF 2026 | Preflight
+  hosts: localhost
+  gather_facts: false
+  environment:
+    K8S_AUTH_KUBECONFIG: "{{ kubeconfig_path }}"
+    KUBECONFIG: "{{ kubeconfig_path }}"
+  roles:
+    - role: preflight
+      tags: [preflight]

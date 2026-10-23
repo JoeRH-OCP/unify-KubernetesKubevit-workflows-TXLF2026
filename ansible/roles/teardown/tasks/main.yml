@@ -1,0 +1,45 @@
+---
+# Order: demo VMs -> network -> kubevirt-manager -> CDI -> KubeVirt -> branding.
+# It does NOT touch ODF, NMState (the operator) or anything not created by this repo.
+- name: Require explicit confirmation
+  ansible.builtin.assert:
+    that: confirm_teardown | bool
+    fail_msg: "teardown removes the demo, kubevirt-manager, CDI, KubeVirt and the branding. Re-run with -e confirm_teardown=true."
+    quiet: true
+  tags: [always]
+
+- name: Demo VMs and namespace
+  ansible.builtin.import_tasks: demo.yml
+  tags: [demo]
+
+- name: Secondary network (NNCP / NAD)
+  ansible.builtin.include_role:
+    name: demo_network
+    tasks_from: remove.yml
+  tags: [network]
+
+- name: Demo namespace
+  kubernetes.core.k8s:
+    state: absent
+    api_version: v1
+    kind: Namespace
+    name: "{{ demo_namespace }}"
+    wait: true
+    wait_timeout: "{{ teardown_wait_timeout }}"
+  tags: [demo]
+
+- name: Remove kubevirt-manager
+  ansible.builtin.import_tasks: kubevirt_manager.yml
+  tags: [kubevirt_manager]
+
+- name: CDI
+  ansible.builtin.import_tasks: cdi.yml
+  tags: [cdi]
+
+- name: KubeVirt
+  ansible.builtin.import_tasks: kubevirt.yml
+  tags: [kubevirt]
+
+- name: Revert the console and OAuth branding
+  ansible.builtin.import_tasks: branding.yml
+  tags: [branding]

@@ -1,0 +1,4 @@
+---
+# Must be set on the command line: -e confirm_teardown=true
+confirm_teardown: false
+teardown_wait_timeout: 900

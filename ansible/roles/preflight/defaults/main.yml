@@ -1,0 +1,38 @@
+---
+preflight_report_path: "{{ reports_dir }}/preflight.md"
+# Newest first. Used to pick a named cpuModel common to all workers.
+preflight_cpu_model_preference:
+  - GraniteRapids
+  - SapphireRapids-v3
+  - SapphireRapids-v2
+  - SapphireRapids
+  - Icelake-Server-v7
+  - Icelake-Server-v6
+  - Icelake-Server-v5
+  - Icelake-Server-v4
+  - Icelake-Server-v3
+  - Icelake-Server-v2
+  - Icelake-Server
+  - Cascadelake-Server-v5
+  - Cascadelake-Server-v4
+  - Cascadelake-Server-v3
+  - Cascadelake-Server-v2
+  - Cascadelake-Server
+  - Skylake-Server-v5
+  - Skylake-Server-v4
+  - Skylake-Server-v3
+  - Skylake-Server-v2
+  - Skylake-Server
+  - Broadwell-v4
+  - Haswell-v4
+  - EPYC-Genoa
+  - EPYC-Milan-v2
+  - EPYC-Milan
+  - EPYC-Rome-v4
+  - EPYC-Rome
+  - EPYC-v4
+  - EPYC
+# Rough per-VM footprint used for the capacity check (guest RAM + virt-launcher overhead).
+preflight_vm_overhead_mib: 300
+# Namespace for the optional privileged node probe.
+preflight_probe_namespace: "{{ event_slug }}-preflight"

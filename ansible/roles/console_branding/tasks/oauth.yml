@@ -1,0 +1,55 @@
+---
+- name: Read cluster authentication type
+  kubernetes.core.k8s_info:
+    api_version: config.openshift.io/v1
+    kind: Authentication
+    name: cluster
+  register: cb_authn
+
+- name: Skip OAuth templates when the cluster uses an external OIDC provider
+  ansible.builtin.debug:
+    msg: "Authentication type is OIDC: the built-in OAuth server (and its templates) is not used."
+  when: (cb_authn.resources[0].spec.type | default('IntegratedOAuth')) == 'OIDC'
+
+- name: Branded OAuth templates
+  when: (cb_authn.resources[0].spec.type | default('IntegratedOAuth')) != 'OIDC'
+  block:
+    - name: Read the badge logo
+      ansible.builtin.slurp:
+        src: "{{ playbook_dir }}/files/branding/about-logo.png"
+      register: cb_badge
+
+    # Our own templates with the same Go template fields that
+    # `oc adm create-login-template` generates, so `oc` is not needed.
+    - name: Template secrets in openshift-config
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          type: Opaque
+          metadata:
+            name: "{{ item.secret }}"
+            namespace: openshift-config
+            labels: "{{ event_labels }}"
+          data: "{{ {item.key: lookup('ansible.builtin.template', 'oauth/' ~ item.key ~ '.j2') | b64encode} }}"
+      loop:
+        - { secret: "{{ oauth_login_secret }}", key: login.html }
+        - { secret: "{{ oauth_providers_secret }}", key: providers.html }
+        - { secret: "{{ oauth_error_secret }}", key: errors.html }
+      loop_control:
+        label: "{{ item.secret }}"
+
+    - name: Point the OAuth server to the templates
+      kubernetes.core.k8s:
+        state: patched
+        api_version: config.openshift.io/v1
+        kind: OAuth
+        name: cluster
+        merge_type: merge
+        definition:
+          spec:
+            templates:
+              login: { name: "{{ oauth_login_secret }}" }
+              providerSelection: { name: "{{ oauth_providers_secret }}" }
+              error: { name: "{{ oauth_error_secret }}" }

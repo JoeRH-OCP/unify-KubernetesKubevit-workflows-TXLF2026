@@ -1,0 +1,97 @@
+#cloud-config
+# {{ event_name }} demo VM: {{ ci_hostname }}
+hostname: {{ ci_hostname }}
+fqdn: {{ ci_hostname }}.{{ demo_namespace }}
+ssh_pwauth: false
+users:
+  - name: {{ vm_user }}
+    gecos: {{ event_name }} demo user
+    groups: [wheel]
+    sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+    shell: /bin/bash
+    lock_passwd: {{ (vm_password | length == 0) | lower }}
+    ssh_authorized_keys:
+      - {{ demo_ssh_pubkey }}
+{% if vm_password %}
+chpasswd:
+  expire: false
+  users:
+    - name: {{ vm_user }}
+      password: {{ vm_password | to_json }}
+      type: text
+{% endif %}
+{% if ci_web | default(false) %}
+package_update: false
+packages:
+  - nginx
+{% endif %}
+write_files:
+  - path: /etc/{{ event_slug }}/banner.txt
+    permissions: "0644"
+    encoding: b64
+    content: {{ (demo_motd_banner ~ '\n') | b64encode }}
+  - path: /usr/local/sbin/{{ event_slug }}-motd
+    permissions: "0755"
+    content: |
+      #!/bin/sh
+      # Rebuilds /etc/motd and /etc/issue with the {{ event_name }} banner.
+      BANNER=/etc/{{ event_slug }}/banner.txt
+      IPS=$(ip -4 -o addr show scope global 2>/dev/null | awk '{print $4}' | cut -d/ -f1 | paste -sd ' ' -)
+      {
+        cat "$BANNER"
+        echo
+        echo "  {{ event_name }}"
+        echo "  {{ event_tagline }}"
+        echo
+        echo "  Host: $(hostname)   IP: ${IPS:-n/a}"
+        echo "  Running on KubeVirt {{ kubevirt_version }} - namespace {{ demo_namespace }}"
+        echo
+      } > /etc/motd
+      {
+        cat "$BANNER"
+        echo
+        echo "  {{ event_name }}"
+        echo "  {{ event_tagline }}"
+        echo
+        printf '%s\n' '  Host: \n   IP: \4'
+        echo
+      } > /etc/issue
+  - path: /etc/systemd/system/{{ event_slug }}-motd.service
+    permissions: "0644"
+    content: |
+      [Unit]
+      Description={{ event_name }} MOTD and /etc/issue
+      Wants=network-online.target
+      After=network-online.target
+
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/sbin/{{ event_slug }}-motd
+
+      [Install]
+      WantedBy=multi-user.target
+{% if vm_http_proxy %}
+  - path: /etc/dnf/dnf.conf
+    append: true
+    content: |
+      proxy={{ vm_http_proxy }}
+{% endif %}
+{% if ci_web | default(false) %}
+  # The landing page is staged here and copied after the nginx RPM is installed,
+  # so the package can't overwrite it.
+  - path: /usr/local/share/{{ event_slug }}-landing/index.html
+    permissions: "0644"
+    encoding: b64
+    content: {{ lookup('ansible.builtin.template', 'landing/index.html.j2') | b64encode }}
+  - path: /usr/local/share/{{ event_slug }}-landing/about-logo.png
+    permissions: "0644"
+    encoding: b64
+    content: {{ demo_about_logo.content }}
+{% endif %}
+runcmd:
+  - [systemctl, daemon-reload]
+  - [systemctl, enable, --now, {{ event_slug }}-motd.service]
+{% if ci_web | default(false) %}
+  - [sh, -c, "cp -a /usr/local/share/{{ event_slug }}-landing/. /usr/share/nginx/html/ && restorecon -R /usr/share/nginx/html || true"]
+  - [systemctl, enable, --now, nginx]
+{% endif %}

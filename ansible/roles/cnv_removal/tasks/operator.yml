@@ -1,0 +1,82 @@
+---
+- name: Delete HyperConverged CRs and wait until they are gone
+  kubernetes.core.k8s:
+    state: absent
+    api_version: hco.kubevirt.io/v1beta1
+    kind: HyperConverged
+    namespace: "{{ item.metadata.namespace }}"
+    name: "{{ item.metadata.name }}"
+    wait: true
+    wait_timeout: "{{ cnv_wait_timeout }}"
+  loop: "{{ pf_hco.resources | default([]) }}"
+  loop_control:
+    label: "{{ item.metadata.namespace }}/{{ item.metadata.name }}"
+
+- name: Wait until HCO-managed CRs are cleaned up (KubeVirt, CDI, SSP, NetworkAddonsConfig)
+  kubernetes.core.k8s_info:
+    api_version: "{{ item.api_version }}"
+    kind: "{{ item.kind }}"
+    name: "{{ item.name }}"
+    namespace: "{{ item.namespace | default(omit) }}"
+  loop:
+    - { api_version: kubevirt.io/v1, kind: KubeVirt, name: kubevirt-kubevirt-hyperconverged, namespace: "{{ cnv_namespace }}" }
+    - { api_version: cdi.kubevirt.io/v1beta1, kind: CDI, name: cdi-kubevirt-hyperconverged }
+    - { api_version: ssp.kubevirt.io/v1beta2, kind: SSP, name: ssp-kubevirt-hyperconverged, namespace: "{{ cnv_namespace }}" }
+    - { api_version: networkaddonsoperator.network.kubevirt.io/v1, kind: NetworkAddonsConfig, name: cluster }
+  loop_control:
+    label: "{{ item.kind }}/{{ item.name }}"
+  register: cnv_children
+  until: cnv_children.resources | default([]) | length == 0
+  retries: 60
+  delay: 10
+
+- name: Delete Subscriptions for OpenShift Virtualization
+  kubernetes.core.k8s:
+    state: absent
+    api_version: operators.coreos.com/v1alpha1
+    kind: Subscription
+    namespace: "{{ item.metadata.namespace }}"
+    name: "{{ item.metadata.name }}"
+  loop: "{{ pf_cnv_subs }}"
+  loop_control:
+    label: "{{ item.metadata.namespace }}/{{ item.metadata.name }}"
+
+- name: List CSVs in the CNV namespace
+  kubernetes.core.k8s_info:
+    api_version: operators.coreos.com/v1alpha1
+    kind: ClusterServiceVersion
+    namespace: "{{ cnv_namespace }}"
+  register: cnv_csvs
+
+- name: Delete the OpenShift Virtualization CSV
+  kubernetes.core.k8s:
+    state: absent
+    api_version: operators.coreos.com/v1alpha1
+    kind: ClusterServiceVersion
+    namespace: "{{ cnv_namespace }}"
+    name: "{{ item.metadata.name }}"
+    wait: true
+    wait_timeout: 300
+  # Only CSVs that live in this namespace (not ones copied from global operators).
+  loop: "{{ cnv_csvs.resources | rejectattr('status.reason', 'equalto', 'Copied') | list }}"
+  loop_control:
+    label: "{{ item.metadata.name }}"
+
+- name: Delete the CNV namespace
+  kubernetes.core.k8s:
+    state: absent
+    api_version: v1
+    kind: Namespace
+    name: "{{ cnv_namespace }}"
+    wait: true
+    wait_timeout: "{{ cnv_wait_timeout }}"
+
+- name: Delete the CNV golden images namespace
+  kubernetes.core.k8s:
+    state: absent
+    api_version: v1
+    kind: Namespace
+    name: "{{ cnv_os_images_namespace }}"
+    wait: true
+    wait_timeout: "{{ cnv_wait_timeout }}"
+  when: cnv_delete_os_images_namespace | bool

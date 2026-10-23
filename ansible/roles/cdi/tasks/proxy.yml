@@ -1,0 +1,54 @@
+---
+- name: Read the cluster-wide Proxy
+  kubernetes.core.k8s_info:
+    api_version: config.openshift.io/v1
+    kind: Proxy
+    name: cluster
+  register: cdi_cluster_proxy
+  when: cdi_import_proxy == 'auto'
+
+- name: Read the proxy status
+  ansible.builtin.set_fact:
+    cdi_proxy_status: "{{ (cdi_cluster_proxy.resources | default([]) | first | default({})).status | default({}) }}"
+    cdi_proxy_trusted_ca: >-
+      {{ ((cdi_cluster_proxy.resources | default([]) | first | default({})).spec | default({})).trustedCA.name | default('')
+         if cdi_import_proxy == 'auto' else '' }}
+
+- name: Build importProxy
+  ansible.builtin.set_fact:
+    cdi_import_proxy_spec: >-
+      {{ ({'HTTPProxy': cdi_proxy_status.httpProxy | default(''),
+           'HTTPSProxy': cdi_proxy_status.httpsProxy | default(''),
+           'noProxy': cdi_proxy_status.noProxy | default('')}
+          if (cdi_proxy_status.httpProxy | default('') or cdi_proxy_status.httpsProxy | default('')) else {})
+         if cdi_import_proxy == 'auto' else cdi_import_proxy }}
+
+- name: Copy the proxy CA bundle into the CDI namespace
+  when: cdi_proxy_trusted_ca | length > 0 and cdi_import_proxy_spec | length > 0
+  block:
+    - name: Read proxy CA bundle from openshift-config
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: ConfigMap
+        namespace: openshift-config
+        name: "{{ cdi_proxy_trusted_ca }}"
+      register: cdi_proxy_ca_src
+
+    - name: Create the proxy CA ConfigMap (key ca.pem) for CDI importers
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: "{{ cdi_proxy_ca_configmap }}"
+            namespace: "{{ cdi_namespace }}"
+            labels: "{{ event_labels }}"
+          data:
+            ca.pem: "{{ cdi_proxy_ca_src.resources[0].data['ca-bundle.crt'] }}"
+      when: cdi_proxy_ca_src.resources | length > 0
+
+    - name: Reference the CA bundle from importProxy
+      ansible.builtin.set_fact:
+        cdi_import_proxy_spec: "{{ cdi_import_proxy_spec | combine({'trustedCAProxy': cdi_proxy_ca_configmap}) }}"
+      when: cdi_proxy_ca_src.resources | length > 0

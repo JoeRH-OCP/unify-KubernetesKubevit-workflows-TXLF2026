@@ -1,0 +1,60 @@
+# Optional: needs enable_secondary_net=true (NNCP bridge br-txlf + NAD demo-lan).
+#   kubectl apply -f manifests/06-vm-secondary-net.yaml
+#   virtctl -n demo-vms ssh fedora@vm/vm-net-live -c 'ip -br addr'
+---
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: vm-net-live
+  namespace: demo-vms
+  labels:
+    app.kubernetes.io/part-of: txlf-2026
+    app.kubernetes.io/component: vm-net
+spec:
+  runStrategy: Always
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: txlf-2026
+        app.kubernetes.io/component: vm-net
+    spec:
+      domain:
+        cpu:
+          cores: 1
+        memory:
+          guest: 2Gi
+        devices:
+          disks:
+            - name: containerdisk
+              disk:
+                bus: virtio
+            - name: cloudinit
+              disk:
+                bus: virtio
+          interfaces:
+            - name: default
+              masquerade: {}
+            - name: demo-lan
+              bridge: {}
+      networks:
+        - name: default
+          pod: {}
+        - name: demo-lan
+          multus:
+            networkName: demo-lan
+      accessCredentials:
+        - sshPublicKey:
+            source:
+              secret:
+                secretName: demo-ssh-key
+            propagationMethod:
+              noCloud: {}
+      volumes:
+        - name: containerdisk
+          containerDisk:
+            image: quay.io/containerdisks/fedora:44-1.7
+        - name: cloudinit
+          cloudInitNoCloud:
+            userData: |
+              #cloud-config
+              hostname: vm-net-live

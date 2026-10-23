@@ -1,0 +1,54 @@
+---
+# Deleting an NNCP does not remove the bridge from the nodes, so first set it
+# to absent, wait, then delete the policy.
+- name: Look for the demo NNCP
+  kubernetes.core.k8s_info:
+    api_version: nmstate.io/v1
+    kind: NodeNetworkConfigurationPolicy
+    name: "{{ demo_nncp_name }}"
+  register: dn_nncp
+
+- name: Remove the bridge from the nodes
+  when: dn_nncp.resources | length > 0
+  block:
+    - name: Set the bridge to absent
+      kubernetes.core.k8s:
+        state: patched
+        api_version: nmstate.io/v1
+        kind: NodeNetworkConfigurationPolicy
+        name: "{{ demo_nncp_name }}"
+        merge_type: merge
+        definition:
+          spec:
+            desiredState:
+              interfaces:
+                - name: "{{ secondary_bridge_name }}"
+                  type: linux-bridge
+                  state: absent
+
+    - name: Wait for the change to be applied
+      kubernetes.core.k8s_info:
+        api_version: nmstate.io/v1
+        kind: NodeNetworkConfigurationPolicy
+        name: "{{ demo_nncp_name }}"
+        wait: true
+        wait_condition:
+          type: Available
+          status: "True"
+        wait_timeout: 600
+      when: not ansible_check_mode
+
+    - name: Delete the NNCP
+      kubernetes.core.k8s:
+        state: absent
+        api_version: nmstate.io/v1
+        kind: NodeNetworkConfigurationPolicy
+        name: "{{ demo_nncp_name }}"
+
+- name: Delete the NetworkAttachmentDefinition
+  kubernetes.core.k8s:
+    state: absent
+    api_version: k8s.cni.cncf.io/v1
+    kind: NetworkAttachmentDefinition
+    namespace: "{{ demo_namespace }}"
+    name: "{{ secondary_nad_name }}"

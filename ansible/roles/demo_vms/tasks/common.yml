@@ -1,0 +1,46 @@
+---
+- name: Resolve the Ingress domain
+  ansible.builtin.include_tasks: ingress_domain.yml
+  when: demo_ingress_domain is not defined
+
+- name: Demo namespace
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ demo_namespace }}"
+        labels: "{{ event_labels | combine(demo_namespace_labels) }}"
+
+- name: Check the SSH public key
+  ansible.builtin.stat:
+    path: "{{ vm_ssh_pubkey_file | expanduser }}"
+  register: demo_ssh_key_stat
+
+- name: Require the SSH public key
+  ansible.builtin.assert:
+    that: demo_ssh_key_stat.stat.exists
+    fail_msg: "SSH public key {{ vm_ssh_pubkey_file }} not found. Set vm_ssh_pubkey_file in infra.yml."
+    quiet: true
+
+- name: Is figlet available?
+  ansible.builtin.command: figlet -v
+  register: demo_figlet
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Render the MOTD banner
+  ansible.builtin.set_fact:
+    demo_ssh_pubkey: "{{ lookup('ansible.builtin.file', vm_ssh_pubkey_file | expanduser) | trim }}"
+    # figlet when available (EE), otherwise the same text pre-rendered with figlet.
+    demo_motd_banner: >-
+      {{ lookup('ansible.builtin.pipe', 'figlet -f ' ~ (motd_figlet_font | quote) ~ ' ' ~ (motd_figlet_text | quote))
+         if demo_figlet.rc == 0
+         else lookup('ansible.builtin.file', playbook_dir ~ '/files/branding/motd-banner.txt') }}
+
+- name: Fail on an empty storage class
+  ansible.builtin.assert:
+    that: storage_class | length > 0
+    quiet: true

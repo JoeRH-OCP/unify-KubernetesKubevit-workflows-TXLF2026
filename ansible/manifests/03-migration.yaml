@@ -1,0 +1,15 @@
+# Live-migrate vm-web to another node (same as `virtctl migrate vm-web`).
+#   kubectl -n demo-vms get vmi vm-web -o wide          # note NODENAME
+#   kubectl create -f manifests/03-migration.yaml       # create: generateName
+#   kubectl -n demo-vms get vmim -w
+#   kubectl -n demo-vms get vmi vm-web -o wide          # new NODENAME
+---
+apiVersion: kubevirt.io/v1
+kind: VirtualMachineInstanceMigration
+metadata:
+  generateName: vm-web-live-
+  namespace: demo-vms
+  labels:
+    app.kubernetes.io/part-of: txlf-2026
+spec:
+  vmiName: vm-web

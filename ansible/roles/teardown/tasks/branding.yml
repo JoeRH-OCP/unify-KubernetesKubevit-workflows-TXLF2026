@@ -1,0 +1,114 @@
+---
+- name: Check the saved originals
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop:
+    - "{{ reports_dir }}/console-original.yaml"
+    - "{{ reports_dir }}/oauth-original.yaml"
+  register: td_backups
+
+- name: Require the saved originals
+  ansible.builtin.assert:
+    that: td_backups.results | map(attribute='stat.exists') | min
+    fail_msg: >-
+      reports/console-original.yaml or reports/oauth-original.yaml is missing, so the
+      original branding can't be restored. Restore it by hand or skip with --skip-tags branding.
+    quiet: true
+
+- name: Load the saved originals
+  ansible.builtin.set_fact:
+    td_console_orig: "{{ lookup('ansible.builtin.file', reports_dir ~ '/console-original.yaml') | from_yaml }}"
+    td_oauth_orig: "{{ lookup('ansible.builtin.file', reports_dir ~ '/oauth-original.yaml') | from_yaml }}"
+
+- name: Read current Console and OAuth
+  kubernetes.core.k8s_info:
+    api_version: "{{ item.api_version }}"
+    kind: "{{ item.kind }}"
+    name: cluster
+  loop:
+    - { api_version: operator.openshift.io/v1, kind: Console }
+    - { api_version: config.openshift.io/v1, kind: OAuth }
+  loop_control:
+    label: "{{ item.kind }}"
+  register: td_current
+
+# JSON patch "add" replaces the member when it exists.
+- name: Restore Console spec.customization
+  kubernetes.core.k8s_json_patch:
+    api_version: operator.openshift.io/v1
+    kind: Console
+    name: cluster
+    patch:
+      - op: add
+        path: /spec/customization
+        value: "{{ td_console_orig.customization }}"
+  when:
+    - td_console_orig.customization is not none
+    - td_current.results[0].resources[0].spec.customization | default(None) != td_console_orig.customization
+
+- name: Remove Console spec.customization (there was none)
+  kubernetes.core.k8s_json_patch:
+    api_version: operator.openshift.io/v1
+    kind: Console
+    name: cluster
+    patch:
+      - op: remove
+        path: /spec/customization
+  when:
+    - td_console_orig.customization is none
+    - td_current.results[0].resources[0].spec.customization is defined
+
+- name: Restore OAuth spec.templates
+  kubernetes.core.k8s_json_patch:
+    api_version: config.openshift.io/v1
+    kind: OAuth
+    name: cluster
+    patch:
+      - op: add
+        path: /spec/templates
+        value: "{{ td_oauth_orig.templates }}"
+  when:
+    - td_oauth_orig.templates is not none
+    - td_current.results[1].resources[0].spec.templates | default(None) != td_oauth_orig.templates
+
+- name: Remove OAuth spec.templates (there were none)
+  kubernetes.core.k8s_json_patch:
+    api_version: config.openshift.io/v1
+    kind: OAuth
+    name: cluster
+    patch:
+      - op: remove
+        path: /spec/templates
+  when:
+    - td_oauth_orig.templates is none
+    - td_current.results[1].resources[0].spec.templates is defined
+
+- name: Delete ConsoleNotification and ConsoleLinks
+  kubernetes.core.k8s:
+    state: absent
+    api_version: console.openshift.io/v1
+    kind: "{{ item }}"
+    label_selectors:
+      - "app.kubernetes.io/part-of={{ event_slug }}"
+    delete_all: true
+  loop: [ConsoleNotification, ConsoleLink]
+
+- name: Delete logos ConfigMap and OAuth template Secrets
+  kubernetes.core.k8s:
+    state: absent
+    api_version: v1
+    kind: "{{ item }}"
+    namespace: openshift-config
+    label_selectors:
+      - "app.kubernetes.io/part-of={{ event_slug }}"
+    delete_all: true
+  loop: [ConfigMap, Secret]
+
+# So the next site.yml captures the cluster's state at that time.
+- name: Archive the saved originals
+  ansible.builtin.command:
+    cmd: mv "{{ item }}" "{{ item }}.restored-{{ now(utc=true, fmt='%Y%m%dT%H%M%SZ') }}"
+    removes: "{{ item }}"
+  loop:
+    - "{{ reports_dir }}/console-original.yaml"
+    - "{{ reports_dir }}/oauth-original.yaml"

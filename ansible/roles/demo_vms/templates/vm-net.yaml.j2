@@ -1,0 +1,71 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: vm-net
+  namespace: {{ demo_namespace }}
+  labels:
+    app.kubernetes.io/component: vm-net
+    {{ event_labels | to_nice_yaml(indent=2) | indent(4) }}
+spec:
+  runStrategy: Always
+  dataVolumeTemplates:
+    - metadata:
+        name: vm-net-rootdisk
+        labels:
+          {{ event_labels | to_nice_yaml(indent=2) | indent(10) }}
+      spec:
+        source:
+          pvc:
+            namespace: {{ demo_namespace }}
+            name: {{ golden_image_name }}
+        storage:
+          storageClassName: {{ storage_class }}
+          volumeMode: Block
+          accessModes:
+            - ReadWriteMany
+          resources:
+            requests:
+              storage: {{ vm_disk_size }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: vm-net
+        {{ event_labels | to_nice_yaml(indent=2) | indent(8) }}
+    spec:
+      domain:
+        cpu:
+          cores: {{ vm_cpu_cores }}
+        memory:
+          guest: {{ vm_memory }}
+        devices:
+          disks:
+            - name: rootdisk
+              disk:
+                bus: virtio
+            - name: cloudinit
+              disk:
+                bus: virtio
+          interfaces:
+            - name: default
+              masquerade: {}
+              macAddress: "{{ demo_vm_net_primary_mac }}"
+            - name: demo-lan
+              bridge: {}
+              macAddress: "{{ demo_vm_net_mac }}"
+          rng: {}
+      networks:
+        - name: default
+          pod: {}
+        - name: demo-lan
+          multus:
+            networkName: {{ secondary_nad_name }}
+      evictionStrategy: {{ 'LiveMigrate' if enable_live_migration | bool else 'None' }}
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - name: rootdisk
+          dataVolume:
+            name: vm-net-rootdisk
+        - name: cloudinit
+          cloudInitNoCloud:
+            userData: {{ lookup('ansible.builtin.template', 'cloud-init.yaml.j2', template_vars={'ci_hostname': 'vm-net', 'ci_web': false}) | to_json }}
+            networkData: {{ lookup('ansible.builtin.template', 'network-data.yaml.j2') | to_json }}

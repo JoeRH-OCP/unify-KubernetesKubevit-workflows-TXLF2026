@@ -1,0 +1,63 @@
+---
+- name: Live migration must be enabled
+  ansible.builtin.assert:
+    that: enable_live_migration | bool
+    fail_msg: "enable_live_migration is false (fewer than 2 VM-eligible workers)."
+    quiet: true
+
+- name: Read vm-web VMI
+  kubernetes.core.k8s_info:
+    api_version: kubevirt.io/v1
+    kind: VirtualMachineInstance
+    namespace: "{{ demo_namespace }}"
+    name: vm-web
+  register: demo_vmi_before
+
+- name: Require vm-web to be running
+  ansible.builtin.assert:
+    that: demo_vmi_before.resources | length > 0 and demo_vmi_before.resources[0].status.phase == 'Running'
+    fail_msg: "vm-web is not running."
+    quiet: true
+
+- name: Create a VirtualMachineInstanceMigration
+  kubernetes.core.k8s:
+    state: present
+    generate_name: vm-web-migration-
+    definition:
+      apiVersion: kubevirt.io/v1
+      kind: VirtualMachineInstanceMigration
+      metadata:
+        namespace: "{{ demo_namespace }}"
+        labels: "{{ event_labels }}"
+      spec:
+        vmiName: vm-web
+  register: demo_migration
+  when: not ansible_check_mode
+
+- name: Wait for the migration to finish
+  kubernetes.core.k8s_info:
+    api_version: kubevirt.io/v1
+    kind: VirtualMachineInstanceMigration
+    namespace: "{{ demo_namespace }}"
+    name: "{{ demo_migration.result.metadata.name }}"
+  register: demo_migration_state
+  until: demo_migration_state.resources[0].status.phase | default('') in ['Succeeded', 'Failed']
+  retries: 60
+  delay: 5
+  when: not ansible_check_mode
+
+- name: Read vm-web VMI after the migration
+  kubernetes.core.k8s_info:
+    api_version: kubevirt.io/v1
+    kind: VirtualMachineInstance
+    namespace: "{{ demo_namespace }}"
+    name: vm-web
+  register: demo_vmi_after
+
+- name: Migration result
+  ansible.builtin.debug:
+    msg: >-
+      {{ demo_migration_state.resources[0].status.phase | default('n/a') }}:
+      vm-web moved from {{ demo_vmi_before.resources[0].status.nodeName }}
+      to {{ demo_vmi_after.resources[0].status.nodeName }}
+  when: not ansible_check_mode

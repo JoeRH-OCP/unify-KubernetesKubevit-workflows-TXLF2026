@@ -1,0 +1,33 @@
+---
+- name: Read NMState instance
+  kubernetes.core.k8s_info:
+    api_version: nmstate.io/v1
+    kind: NMState
+  register: pf_nmstate
+
+- name: Read NodeNetworkState
+  kubernetes.core.k8s_info:
+    api_version: nmstate.io/v1beta1
+    kind: NodeNetworkState
+  register: pf_nns
+
+- name: Compute free NICs on eligible workers
+  ansible.builtin.set_fact:
+    pf_nmstate_present: "{{ pf_nmstate.resources | default([]) | length > 0 }}"
+    pf_free_nics: "{{ pf_nns.resources | default([]) | preflight_free_nics(pf_eligible | map(attribute='name') | list) }}"
+
+- name: Propose secondary_nic
+  ansible.builtin.set_fact:
+    pf_common_nic: "{{ pf_free_nics | preflight_common_nic }}"
+
+- name: Flag missing NMState instance
+  ansible.builtin.set_fact:
+    pf_warnings: "{{ pf_warnings + ['No NMState instance found: the optional secondary network (enable_secondary_net) will not work.'] }}"
+  when: not pf_nmstate_present | bool
+
+- name: Flag no common free NIC
+  ansible.builtin.set_fact:
+    pf_warnings: "{{ pf_warnings + ['No NIC is free on every eligible worker: set secondary_nic by hand or keep enable_secondary_net=false.'] }}"
+  when:
+    - pf_nmstate_present | bool
+    - pf_common_nic | length == 0

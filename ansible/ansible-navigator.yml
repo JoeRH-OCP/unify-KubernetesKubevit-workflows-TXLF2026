@@ -1,0 +1,22 @@
+---
+ansible-navigator:
+  mode: stdout
+  playbook-artifact:
+    enable: false
+  execution-environment:
+    enabled: true
+    image: localhost/txlf-2026-ee:latest
+    pull:
+      policy: missing
+    environment-variables:
+      set:
+        KUBECONFIG: /runner/.kube/config
+        ANSIBLE_CONFIG: /runner/project/ansible.cfg
+    volume-mounts:
+      # kubeconfig and SSH public key from the laptop.
+      - src: ${HOME}/.kube
+        dest: /runner/.kube
+        options: Z
+      - src: ${HOME}/.ssh
+        dest: /runner/.ssh
+        options: ro,Z

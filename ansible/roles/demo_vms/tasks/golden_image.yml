@@ -1,0 +1,38 @@
+---
+- name: Look for an existing golden-image PVC
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: PersistentVolumeClaim
+    namespace: "{{ demo_namespace }}"
+    name: "{{ golden_image_name }}"
+  register: demo_golden_pvc
+
+# Only created when the PVC is missing, so a reset never re-imports the image.
+- name: Golden image DataVolume (HTTP import of the Fedora qcow2)
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('ansible.builtin.template', 'golden-image.yaml.j2') | from_yaml }}"
+  when: demo_golden_pvc.resources | length == 0
+
+- name: Wait for the import to finish
+  kubernetes.core.k8s_info:
+    api_version: cdi.kubevirt.io/v1beta1
+    kind: DataVolume
+    namespace: "{{ demo_namespace }}"
+    name: "{{ golden_image_name }}"
+  register: demo_golden_dv
+  until: >-
+    demo_golden_dv.resources | length == 0 or
+    demo_golden_dv.resources[0].status.phase | default('') in ['Succeeded', 'Failed']
+  retries: "{{ (demo_golden_import_timeout_s / 10) | int }}"
+  delay: 10
+  when: not ansible_check_mode
+
+- name: Fail if the import failed
+  ansible.builtin.assert:
+    that: >-
+      demo_golden_dv.resources | default([]) | length == 0 or
+      demo_golden_dv.resources[0].status.phase | default('') == 'Succeeded'
+    fail_msg: "golden-image import failed: {{ demo_golden_dv.resources[0].status.conditions | default([]) | to_nice_yaml }}"
+    quiet: true
+  when: not ansible_check_mode

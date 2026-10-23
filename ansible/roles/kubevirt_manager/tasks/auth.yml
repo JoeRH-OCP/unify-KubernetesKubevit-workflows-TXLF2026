@@ -1,0 +1,42 @@
+---
+# Upstream's nginx only protects the UI (location /) with basic auth, not the
+# /k8s proxy to the Kubernetes API, which runs with cluster-wide VM rights.
+# Our default.conf (templates/default.conf.j2) adds auth to /k8s as well, and
+# auth is always on: if no password is given we generate one.
+- name: Pick the kubevirt-manager password
+  ansible.builtin.set_fact:
+    kvm_password: >-
+      {{ kubevirt_manager_auth_password
+         or lookup('ansible.builtin.password', kubevirt_manager_password_file, chars=['ascii_letters', 'digits'], length=20) }}
+  no_log: true
+
+- name: Basic auth config (auth.d)
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: auth-config
+        namespace: "{{ kubevirt_manager_namespace }}"
+        labels: "{{ event_labels | combine({'app': 'kubevirt-manager'}) }}"
+      data:
+        basicauth.conf: |
+          auth_basic "{{ event_name }} - KubeVirt Manager";
+          auth_basic_user_file /etc/nginx/secret.d/.htpasswd;
+
+- name: Basic auth users (secret.d/.htpasswd)
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: auth-secret
+        namespace: "{{ kubevirt_manager_namespace }}"
+        labels: "{{ event_labels | combine({'app': 'kubevirt-manager'}) }}"
+      type: Opaque
+      data:
+        # Fixed salt derived from the password keeps this task idempotent.
+        .htpasswd: "{{ (kubevirt_manager_auth_user ~ ':' ~ (kvm_password | password_hash('sha512', (kvm_password | hash('sha256'))[:16])) ~ '\n') | b64encode }}"
+  no_log: true

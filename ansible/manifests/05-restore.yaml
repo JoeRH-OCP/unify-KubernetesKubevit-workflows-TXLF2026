@@ -1,0 +1,19 @@
+# Restore vm-web from vm-web-snap-live. The VM must be stopped first:
+#   virtctl -n demo-vms stop vm-web --wait   (or: kubectl patch vm vm-web --type merge -p '{"spec":{"runStrategy":"Halted"}}')
+#   kubectl apply -f manifests/05-restore.yaml
+#   kubectl -n demo-vms get vmrestore vm-web-restore-live -w   # COMPLETE=true
+#   virtctl -n demo-vms start vm-web
+---
+apiVersion: snapshot.kubevirt.io/v1beta1
+kind: VirtualMachineRestore
+metadata:
+  name: vm-web-restore-live
+  namespace: demo-vms
+  labels:
+    app.kubernetes.io/part-of: txlf-2026
+spec:
+  target:
+    apiGroup: kubevirt.io
+    kind: VirtualMachine
+    name: vm-web
+  virtualMachineSnapshotName: vm-web-snap-live

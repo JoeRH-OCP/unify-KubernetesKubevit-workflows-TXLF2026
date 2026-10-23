@@ -1,0 +1,123 @@
+# Preflight report — {{ event_name }}
+
+Generated: {{ pf_report_time }} · Cluster API: `{{ pf_cluster_info.connection.host | default('n/a') }}`
+
+## Result
+
+{% if pf_blockers %}
+**{{ pf_blockers | length }} blocker(s)** — `site.yml` will stop until they are fixed
+(or run with `-e preflight_ignore_blockers=true`).
+
+{% for b in pf_blockers %}
+- :x: {{ b }}
+{% endfor %}
+{% else %}
+**No blockers.**
+{% endif %}
+
+{% if pf_warnings %}
+### Warnings
+
+{% for w in pf_warnings %}
+- :warning: {{ w }}
+{% endfor %}
+{% endif %}
+
+## Versions
+
+| Item | Value |
+|---|---|
+| OpenShift | {{ pf_ocp_version_full }} (expected `{{ ocp_version }}`) |
+| Kubernetes | {{ pf_k8s_version }} |
+| KubeVirt to install | {{ kubevirt_version }} |
+| CDI to install | {{ cdi_version }} |
+| Console `logos` API | {{ 'yes (4.19+)' if console_logos_api | bool else 'no — customLogoFile fallback' }} |
+
+## Nodes
+
+| Node | Roles | Ready | ODF | Taints | /dev/kvm | CPU | Free CPU | Free RAM | VM-eligible |
+|---|---|---|---|---|---|---|---|---|---|
+{% for n in pf_nodes %}
+| {{ n.name }} | {{ n.roles | join(', ') }} | {{ 'yes' if n.ready else 'no' }} | {{ 'yes' if n.odf else '' }} | {{ n.taints | join('<br>') }} | {{ {True: 'yes', False: 'no'}.get(n.kvm, '?') }} ({{ n.kvm_source }}) | {{ n.host_model or n.cpu_model_name or '?' }} | {{ '%.1f' | format(n.cpu_free_m / 1000) }} / {{ '%.1f' | format(n.cpu_alloc_m / 1000) }} | {{ n.mem_free | human_bytes }} / {{ n.mem_alloc | human_bytes }} | {{ 'yes' if n.eligible else 'no: ' ~ (n.reasons | join('; ')) }} |
+{% endfor %}
+
+ODF storage nodes: {{ pf_odf_nodes | join(', ') or 'none' }}
+(ODF nodes {{ 'are excluded' if preflight_exclude_odf_nodes | bool else 'are allowed' }} as VM hosts — `preflight_exclude_odf_nodes`).
+
+Demo footprint: {{ pf_demo_vm_count }} VMs ≈ {{ pf_demo_mem_needed | human_bytes }} RAM.
+Free on eligible workers: {{ pf_eligible_mem_free | human_bytes }} RAM, {{ '%.1f' | format((pf_eligible_cpu_free | int) / 1000) }} CPU.
+
+{% if pf_eligible | selectattr('supported_cpu_models') | list %}
+<details><summary>Supported CPU models per eligible worker (from KubeVirt/CNV labels)</summary>
+
+{% for n in pf_eligible %}
+- **{{ n.name }}**: {{ n.supported_cpu_models | join(', ') }}
+{% endfor %}
+</details>
+{% endif %}
+
+## Storage
+
+| Check | Value |
+|---|---|
+| StorageClass `{{ storage_class }}` | {{ ('found, provisioner `' ~ pf_sc.provisioner ~ '`, binding `' ~ pf_sc.volumeBindingMode | default('Immediate') ~ '`') if pf_sc else 'NOT FOUND' }} |
+| VolumeSnapshotClass `{{ snapshot_class }}` | {{ ('found, driver `' ~ pf_vsc.driver ~ '`') if pf_vsc else 'NOT FOUND' }} |
+| All StorageClasses | {{ pf_sc_names | join(', ') }} |
+| All VolumeSnapshotClasses | {{ pf_vsc_names | join(', ') }} |
+| Ceph health | {{ pf_ceph_health }} |
+| Ceph capacity | {{ pf_ceph_avail | human_bytes }} free of {{ pf_ceph_total | human_bytes }} (min {{ preflight_min_free_gib }} GiB) |
+
+## Virtualization already in the cluster
+
+| Item | Status |
+|---|---|
+| OpenShift Virtualization (HCO) | {{ 'INSTALLED' if pf_cnv_installed | bool else 'not installed' }} |
+| MTV (Forklift) | {{ 'INSTALLED' if pf_mtv_installed | bool else 'not installed' }} |
+| Upstream KubeVirt CR | {{ 'present' if pf_upstream_kubevirt | bool else 'not present' }} |
+| VirtualMachines | {{ pf_existing_vms | length }}{{ (': ' ~ (pf_existing_vms | join(', '))) if pf_existing_vms else '' }} |
+
+## Network
+
+| Check | Value |
+|---|---|
+| NMState instance | {{ 'present' if pf_nmstate_present | bool else 'MISSING' }} |
+| Ingress domain | `{{ pf_ingress_domain }}` |
+| Wildcard DNS from this host | {{ 'ok' if pf_dns_ok | bool else 'FAILED' }} |
+| Ingress certificate | {{ 'trusted' if pf_cert_trusted | bool else 'NOT trusted by this host (self-signed?)' }}{{ (' — custom defaultCertificate `' ~ pf_ingress_custom_cert ~ '`') if pf_ingress_custom_cert else ' — operator-generated' }} |
+| Cluster proxy | {{ ('http: `' ~ pf_proxy.httpProxy | default('') ~ '` https: `' ~ pf_proxy.httpsProxy | default('') ~ '` noProxy: `' ~ pf_proxy.noProxy | default('') ~ '`') if (pf_proxy.httpProxy | default('') or pf_proxy.httpsProxy | default('')) else 'none' }} |
+
+Free NICs on eligible workers (ethernet, no IP, not enslaved, no routes):
+
+{% for node, nics in pf_free_nics.items() %}
+- **{{ node }}**: {{ nics | map(attribute='name') | join(', ') or 'none' }}
+{% else %}
+- no NodeNetworkState data
+{% endfor %}
+
+## Internet access (from the control host)
+
+| Endpoint | Result |
+|---|---|
+| quay.io | {{ 'ok' if pf_net.quay | bool else 'FAILED' }} |
+| Docker Hub | {{ 'ok' if pf_net.dockerhub | bool else 'FAILED / rate-limited' }} — remaining `{{ pf_net.dockerhub_remaining }}`, limit `{{ pf_net.dockerhub_limit }}` |
+| github.com releases | {{ 'ok' if pf_net.github | bool else 'FAILED' }} |
+| download.fedoraproject.org | {{ 'ok' if pf_net.fedora | bool else 'FAILED' }} |
+
+> These run from the machine that runs Ansible. Nodes pull through their own
+> network/proxy; the image pull itself is tested when the operators start.
+
+## Proposed `group_vars/all/infra.yml` values
+
+Confidence of the CPU model proposal: **{{ pf_proposed_cpu.confidence }}** — {{ pf_proposed_cpu.note }}
+
+```yaml
+ocp_version: "{{ pf_ocp_minor }}"
+storage_class: "{{ storage_class if pf_sc else (pf_rbd_scs | first | default('')) }}"
+snapshot_class: "{{ snapshot_class if pf_vsc else (pf_vsc_names | select('search', 'rbd') | first | default('')) }}"
+kubevirt_node_placement:
+{{ pf_proposed_placement | to_nice_yaml(indent=2) | indent(2, true) if pf_proposed_placement else '  {}' }}
+kubevirt_cpu_model: "{{ pf_proposed_cpu.value }}"
+enable_live_migration: {{ pf_proposed_live_migration | lower }}
+secondary_nic: "{{ pf_common_nic }}"
+ingress_domain: "{{ pf_ingress_domain }}"
+```

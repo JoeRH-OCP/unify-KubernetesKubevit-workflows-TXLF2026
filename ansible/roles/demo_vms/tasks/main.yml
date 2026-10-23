@@ -1,0 +1,40 @@
+---
+# Tags: quick, web, clone, scale, migrate, snapshot, restore, network.
+# migrate/snapshot/restore are also tagged `never`: they only run when asked for
+# explicitly (ansible-playbook demo.yml --tags migrate).
+- name: Common facts, namespace and cloud-init pieces
+  ansible.builtin.import_tasks: common.yml
+  tags: [quick, web, clone, scale, network, migrate, snapshot, restore]
+
+- name: Golden image (DataVolume import of Fedora qcow2 to RBD Block/RWX)
+  ansible.builtin.import_tasks: golden_image.yml
+  tags: [clone, web, scale, network]
+
+- name: VM vm-quick (containerDisk)
+  ansible.builtin.import_tasks: vm_quick.yml
+  tags: [quick]
+
+- name: VM vm-web (snapshot clone of golden-image + nginx landing)
+  ansible.builtin.import_tasks: vm_web.yml
+  tags: [web]
+
+- name: N clones with kubevirt.core.kubevirt_vm
+  ansible.builtin.import_tasks: clones.yml
+  tags: [scale]
+
+- name: VM with a second NIC on the Linux bridge
+  ansible.builtin.import_tasks: vm_net.yml
+  tags: [network]
+  when: enable_secondary_net | bool
+
+- name: Live migration of vm-web
+  ansible.builtin.import_tasks: migrate.yml
+  tags: [never, migrate]
+
+- name: VirtualMachineSnapshot of vm-web
+  ansible.builtin.import_tasks: snapshot.yml
+  tags: [never, snapshot]
+
+- name: Restore vm-web from the snapshot
+  ansible.builtin.import_tasks: restore.yml
+  tags: [never, restore]

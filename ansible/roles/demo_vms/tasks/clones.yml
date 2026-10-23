@@ -1,0 +1,54 @@
+---
+- name: Clone VMs from the golden image
+  kubevirt.core.kubevirt_vm:
+    state: present
+    name: "{{ demo_clone_prefix }}-{{ item }}"
+    namespace: "{{ demo_namespace }}"
+    labels: "{{ event_labels | combine({'app.kubernetes.io/component': 'clone'}) }}"
+    run_strategy: Always
+    data_volume_templates:
+      - metadata:
+          name: "{{ demo_clone_prefix }}-{{ item }}-rootdisk"
+          labels: "{{ event_labels }}"
+        spec:
+          source:
+            pvc:
+              namespace: "{{ demo_namespace }}"
+              name: "{{ golden_image_name }}"
+          storage:
+            storageClassName: "{{ storage_class }}"
+            volumeMode: Block
+            accessModes: [ReadWriteMany]
+            resources:
+              requests:
+                storage: "{{ vm_disk_size }}"
+    spec:
+      domain:
+        cpu:
+          cores: "{{ vm_cpu_cores | int }}"
+        memory:
+          guest: "{{ vm_memory }}"
+        devices:
+          disks:
+            - name: rootdisk
+              disk: { bus: virtio }
+            - name: cloudinit
+              disk: { bus: virtio }
+          interfaces:
+            - name: default
+              masquerade: {}
+          rng: {}
+      networks:
+        - name: default
+          pod: {}
+      evictionStrategy: "{{ 'LiveMigrate' if enable_live_migration | bool else 'None' }}"
+      volumes:
+        - name: rootdisk
+          dataVolume:
+            name: "{{ demo_clone_prefix }}-{{ item }}-rootdisk"
+        - name: cloudinit
+          cloudInitNoCloud:
+            userData: "{{ lookup('ansible.builtin.template', 'cloud-init.yaml.j2', template_vars={'ci_hostname': demo_clone_prefix ~ '-' ~ item, 'ci_web': false}) }}"
+  loop: "{{ range(1, (clone_count | int) + 1) | list }}"
+  loop_control:
+    label: "{{ demo_clone_prefix }}-{{ item }}"

@@ -1,0 +1,31 @@
+---
+- name: Read Kubernetes server version
+  kubernetes.core.k8s_cluster_info:
+    invalidate_cache: false
+  register: pf_cluster_info
+
+- name: Read ClusterVersion
+  kubernetes.core.k8s_info:
+    api_version: config.openshift.io/v1
+    kind: ClusterVersion
+    name: version
+  register: pf_cv
+
+- name: Extract versions
+  ansible.builtin.set_fact:
+    pf_k8s_version: "{{ pf_cluster_info.version.server.kubernetes.gitVersion | default('unknown') }}"
+    pf_ocp_version_full: "{{ (pf_cv.resources | first | default({})).status.desired.version | default('unknown') }}"
+
+- name: Compute OpenShift minor version
+  ansible.builtin.set_fact:
+    pf_ocp_minor: "{{ pf_ocp_version_full.split('.')[:2] | join('.') }}"
+
+- name: Flag OpenShift version mismatch
+  ansible.builtin.set_fact:
+    pf_blockers: "{{ pf_blockers + ['OpenShift is ' ~ pf_ocp_version_full ~ ' but ocp_version is ' ~ ocp_version ~ ' (infra.yml)'] }}"
+  when: pf_ocp_minor != ocp_version
+
+- name: Flag OpenShift version without a compat_matrix entry
+  ansible.builtin.set_fact:
+    pf_blockers: "{{ pf_blockers + ['OpenShift ' ~ pf_ocp_minor ~ ' has no entry in compat_matrix (versions.yml). Add one after checking the KubeVirt support matrix.'] }}"
+  when: pf_ocp_minor not in compat_matrix

@@ -1,0 +1,9 @@
+---
+profile: production
+exclude_paths:
+  - .cache/
+  - collections/
+  - context/
+  - manifests/   # plain Kubernetes YAML, not Ansible
+skip_list:
+  - var-naming[no-role-prefix]   # shared vars live in group_vars/all on purpose

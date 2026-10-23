@@ -1,0 +1,75 @@
+---
+# Deletes the demo VMs and everything created during the talk; keeps golden-image,
+# the namespace, node-reporter, Services and Ingress.
+- name: List VirtualMachines in {{ demo_namespace }}
+  kubernetes.core.k8s_info:
+    api_version: kubevirt.io/v1
+    kind: VirtualMachine
+    namespace: "{{ demo_namespace }}"
+  register: reset_vms
+
+- name: Delete VirtualMachines (their DataVolumes go with them)
+  kubernetes.core.k8s:
+    state: absent
+    api_version: kubevirt.io/v1
+    kind: VirtualMachine
+    namespace: "{{ demo_namespace }}"
+    name: "{{ item.metadata.name }}"
+    wait: true
+    wait_timeout: 300
+  loop: "{{ reset_vms.resources }}"
+  loop_control:
+    label: "{{ item.metadata.name }}"
+
+- name: List snapshot/restore/migration objects
+  kubernetes.core.k8s_info:
+    api_version: "{{ item.api_version }}"
+    kind: "{{ item.kind }}"
+    namespace: "{{ demo_namespace }}"
+  loop:
+    - { api_version: snapshot.kubevirt.io/v1beta1, kind: VirtualMachineRestore }
+    - { api_version: snapshot.kubevirt.io/v1beta1, kind: VirtualMachineSnapshot }
+    - { api_version: kubevirt.io/v1, kind: VirtualMachineInstanceMigration }
+  loop_control:
+    label: "{{ item.kind }}"
+  register: reset_objs
+
+- name: Delete snapshot/restore/migration objects
+  kubernetes.core.k8s:
+    state: absent
+    api_version: "{{ item.apiVersion }}"
+    kind: "{{ item.kind }}"
+    namespace: "{{ demo_namespace }}"
+    name: "{{ item.metadata.name }}"
+    wait: true
+    wait_timeout: 300
+  loop: "{{ reset_objs.results | map(attribute='resources') | flatten }}"
+  loop_control:
+    label: "{{ item.kind }}/{{ item.metadata.name }}"
+
+- name: List DataVolumes and PVCs
+  kubernetes.core.k8s_info:
+    api_version: "{{ item.api_version }}"
+    kind: "{{ item.kind }}"
+    namespace: "{{ demo_namespace }}"
+  loop:
+    - { api_version: cdi.kubevirt.io/v1beta1, kind: DataVolume }
+    - { api_version: v1, kind: PersistentVolumeClaim }
+  loop_control:
+    label: "{{ item.kind }}"
+  register: reset_vols
+
+- name: Delete DataVolumes and PVCs except {{ golden_image_name }}
+  kubernetes.core.k8s:
+    state: absent
+    api_version: "{{ item.apiVersion }}"
+    kind: "{{ item.kind }}"
+    namespace: "{{ demo_namespace }}"
+    name: "{{ item.metadata.name }}"
+    wait: true
+    wait_timeout: 300
+  loop: >-
+    {{ reset_vols.results | map(attribute='resources') | flatten
+       | rejectattr('metadata.name', 'equalto', golden_image_name) | list }}
+  loop_control:
+    label: "{{ item.kind }}/{{ item.metadata.name }}"

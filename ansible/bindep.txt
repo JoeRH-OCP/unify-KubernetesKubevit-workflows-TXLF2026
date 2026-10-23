@@ -1,0 +1,6 @@
+# System packages for the execution environment (Fedora).
+figlet [platform:rpm]
+ImageMagick [platform:rpm]
+openssh-clients [platform:rpm]
+tar [platform:rpm]
+gzip [platform:rpm]

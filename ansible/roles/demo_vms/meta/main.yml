@@ -1,0 +1,11 @@
+---
+galaxy_info:
+  role_name: demo_vms
+  author: txlf-2026-demo
+  description: Demo VMs (containerDisk, golden image, clones, live migration, snapshots) for the event.
+  license: Apache-2.0
+  min_ansible_version: "2.16"
+  platforms:
+    - name: GenericLinux
+      versions: [all]
+dependencies: []

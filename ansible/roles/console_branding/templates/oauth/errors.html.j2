@@ -1,0 +1,12 @@
+{% set page_title = 'Error' %}
+{% include 'oauth/_head.html.j2' %}
+{% raw %}
+      <div class="error">
+        {{ if eq .ErrorCode "mapping_claim_error" }}
+          Could not create your user. Contact your administrator to resolve this issue.
+        {{ else }}
+          {{ .Error }}
+        {{ end }}
+      </div>
+{% endraw %}
+{% include 'oauth/_foot.html.j2' %}

@@ -1,0 +1,12 @@
+---
+# Removes the demo, NNCP/NAD, kubevirt-manager, CDI, KubeVirt and reverts the
+# branding from reports/. Does not reinstall OpenShift Virtualization.
+#   ansible-navigator run teardown.yml -e confirm_teardown=true
+- name: TXLF 2026 | Teardown
+  hosts: localhost
+  gather_facts: false
+  environment:
+    K8S_AUTH_KUBECONFIG: "{{ kubeconfig_path }}"
+    KUBECONFIG: "{{ kubeconfig_path }}"
+  roles:
+    - role: teardown

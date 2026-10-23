@@ -1,0 +1,13 @@
+---
+# Prints KubeVirt/CDI status, VMs with their node, and the Ingress URLs.
+- name: TXLF 2026 | Verify
+  hosts: localhost
+  gather_facts: false
+  environment:
+    K8S_AUTH_KUBECONFIG: "{{ kubeconfig_path }}"
+    KUBECONFIG: "{{ kubeconfig_path }}"
+  tasks:
+    - name: Status
+      ansible.builtin.include_role:
+        name: demo_vms
+        tasks_from: verify.yml

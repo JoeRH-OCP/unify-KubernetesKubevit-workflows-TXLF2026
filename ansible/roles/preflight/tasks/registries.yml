@@ -1,0 +1,77 @@
+---
+# These checks run from the control host (your laptop / EE), not from the nodes.
+- name: Check quay.io registry API
+  ansible.builtin.uri:
+    url: https://quay.io/v2/
+    status_code: [200, 401]
+    timeout: 15
+  register: pf_quay
+  failed_when: false
+  check_mode: false
+
+- name: Get anonymous Docker Hub token
+  ansible.builtin.uri:
+    url: "https://auth.docker.io/token?service=registry.docker.io&scope=repository:ratelimitpreview/test:pull"
+    return_content: true
+    timeout: 15
+  register: pf_dh_token
+  failed_when: false
+  check_mode: false
+
+- name: Read Docker Hub pull rate limit
+  ansible.builtin.uri:
+    url: https://registry-1.docker.io/v2/ratelimitpreview/test/manifests/latest
+    method: HEAD
+    headers:
+      Authorization: "Bearer {{ pf_dh_token.json.token | default('') }}"
+      Accept: application/vnd.docker.distribution.manifest.v2+json
+    status_code: [200, 429]
+    timeout: 15
+  register: pf_dh
+  failed_when: false
+  check_mode: false
+
+- name: Check github.com (release manifests)
+  ansible.builtin.uri:
+    url: "{{ kubevirt_release_url }}/kubevirt-operator.yaml"
+    method: HEAD
+    status_code: [200]
+    timeout: 15
+  register: pf_github
+  failed_when: false
+  check_mode: false
+
+- name: Check download.fedoraproject.org (golden image)
+  ansible.builtin.uri:
+    url: "{{ fedora_qcow2_url }}"
+    method: HEAD
+    status_code: [200]
+    timeout: 20
+  register: pf_fedora
+  failed_when: false
+  check_mode: false
+
+- name: Summarise registry checks
+  ansible.builtin.set_fact:
+    pf_net:
+      quay: "{{ pf_quay.status | default(-1) in [200, 401] }}"
+      dockerhub: "{{ pf_dh.status | default(-1) == 200 }}"
+      dockerhub_limit: "{{ pf_dh.ratelimit_limit | default('n/a') }}"
+      dockerhub_remaining: "{{ pf_dh.ratelimit_remaining | default('n/a') }}"
+      github: "{{ pf_github.status | default(-1) == 200 }}"
+      fedora: "{{ pf_fedora.status | default(-1) == 200 }}"
+
+- name: Flag unreachable endpoints
+  ansible.builtin.set_fact:
+    pf_blockers: "{{ pf_blockers + [item.msg] }}"
+  when: not item.ok | bool
+  loop:
+    - { ok: "{{ pf_net.quay }}", msg: "quay.io is not reachable (KubeVirt/CDI images, containerDisk)" }
+    - { ok: "{{ pf_net.github }}", msg: "github.com release downloads are not reachable" }
+    - { ok: "{{ pf_net.fedora }}", msg: "{{ fedora_qcow2_url }} is not reachable" }
+  loop_control:
+    label: "{{ item.msg }}"
+
+- name: Flag Docker Hub
+  ansible.builtin.set_fact:
+    pf_warnings: "{{ pf_warnings + ['Docker Hub (kubevirt-manager image): ' ~ ('unreachable or rate-limited' if not pf_net.dockerhub | bool else 'anonymous pulls left for this IP: ' ~ pf_net.dockerhub_remaining ~ ' (limit ' ~ pf_net.dockerhub_limit ~ '). Nodes behind the same NAT share it; pre-pull or use kubevirt_manager_image_registry.')] }}"

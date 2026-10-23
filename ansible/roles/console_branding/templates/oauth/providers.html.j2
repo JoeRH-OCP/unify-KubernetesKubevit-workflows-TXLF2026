@@ -1,0 +1,10 @@
+{% set page_title = 'Choose a login method' %}
+{% include 'oauth/_head.html.j2' %}
+{% raw %}
+      {{ range $provider := .Providers }}
+        <div class="provider">
+          <a href="{{ $provider.URL }}">Log in with {{ $provider.Name }}</a>
+        </div>
+      {{ end }}
+{% endraw %}
+{% include 'oauth/_foot.html.j2' %}

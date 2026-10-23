@@ -1,0 +1,69 @@
+---
+- name: Read cluster Proxy
+  kubernetes.core.k8s_info:
+    api_version: config.openshift.io/v1
+    kind: Proxy
+    name: cluster
+  register: pf_proxy_raw
+
+- name: Read cluster Ingress config
+  kubernetes.core.k8s_info:
+    api_version: config.openshift.io/v1
+    kind: Ingress
+    name: cluster
+  register: pf_ingress_cfg
+
+- name: Read default IngressController
+  kubernetes.core.k8s_info:
+    api_version: operator.openshift.io/v1
+    kind: IngressController
+    namespace: openshift-ingress-operator
+    name: default
+  register: pf_ic
+
+- name: Extract network facts
+  ansible.builtin.set_fact:
+    pf_proxy: "{{ (pf_proxy_raw.resources | first | default({})).status | default({}) }}"
+    pf_proxy_trusted_ca: "{{ (pf_proxy_raw.resources | first | default({})).spec.trustedCA.name | default('') }}"
+    pf_ingress_domain: "{{ ingress_domain or ((pf_ingress_cfg.resources | first | default({})).spec.domain | default('')) }}"
+    pf_ingress_custom_cert: "{{ (pf_ic.resources | first | default({})).spec.defaultCertificate.name | default('') }}"
+
+- name: Check that wildcard DNS for the apps domain reaches the router
+  ansible.builtin.uri:
+    url: "https://{{ event_slug }}-dns-check.{{ pf_ingress_domain }}/"
+    validate_certs: false
+    status_code: [200, 404, 503]
+    timeout: 10
+  register: pf_dns_check
+  failed_when: false
+  check_mode: false
+
+- name: Check the Ingress certificate is trusted by this host
+  ansible.builtin.uri:
+    url: "https://console-openshift-console.{{ pf_ingress_domain }}/"
+    validate_certs: true
+    status_code: [200, 302, 403]
+    timeout: 10
+  register: pf_cert_check
+  failed_when: false
+  check_mode: false
+
+- name: Summarise network checks
+  ansible.builtin.set_fact:
+    pf_dns_ok: "{{ pf_dns_check.status | default(-1) in [200, 404, 503] }}"
+    pf_cert_trusted: "{{ pf_cert_check.status | default(-1) in [200, 302, 403] }}"
+
+- name: Flag DNS problem
+  ansible.builtin.set_fact:
+    pf_blockers: "{{ pf_blockers + ['*.' ~ pf_ingress_domain ~ ' does not resolve/reach the router from this host: ' ~ (pf_dns_check.msg | default(''))] }}"
+  when: not pf_dns_ok | bool
+
+- name: Flag self-signed Ingress certificate
+  ansible.builtin.set_fact:
+    pf_warnings: "{{ pf_warnings + ['Ingress certificate is not trusted by this host' ~ (' (IngressController uses the operator-generated, self-signed CA)' if not pf_ingress_custom_cert else '') ~ '. Browsers will show a warning: accept it before the talk or set a trusted defaultCertificate.'] }}"
+  when: not pf_cert_trusted | bool
+
+- name: Note cluster-wide proxy
+  ansible.builtin.set_fact:
+    pf_warnings: "{{ pf_warnings + ['Cluster-wide proxy is set (' ~ (pf_proxy.httpsProxy | default(pf_proxy.httpProxy)) ~ '): CDI importProxy will be configured from it.'] }}"
+  when: (pf_proxy.httpProxy | default('')) or (pf_proxy.httpsProxy | default(''))

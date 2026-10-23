@@ -1,0 +1,10 @@
+---
+console_logos_configmap: "{{ event_slug }}-console-logos"
+console_notification_name: "{{ event_slug }}-banner"
+console_backup_file: "{{ reports_dir }}/console-original.yaml"
+oauth_backup_file: "{{ reports_dir }}/oauth-original.yaml"
+oauth_login_secret: "{{ event_slug }}-login-template"
+oauth_providers_secret: "{{ event_slug }}-providers-template"
+oauth_error_secret: "{{ event_slug }}-error-template"
+# Icon for the ConsoleLinks in the application menu (pinned to the same commit).
+console_link_image_url: "https://raw.githubusercontent.com/TXLF/2026website/{{ branding_source_sha }}/static/images/favicon.png"

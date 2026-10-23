@@ -1,0 +1,91 @@
+---
+# Optional: one privileged pod per worker reads /dev/kvm and /proc/cpuinfo.
+# Pods are created directly (not via a Job) so SCC admission uses your
+# cluster-admin identity. The namespace is always deleted at the end.
+- name: Probe workers
+  block:
+    - name: Create probe namespace
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: "{{ preflight_probe_namespace }}"
+            labels: "{{ event_labels | combine({'pod-security.kubernetes.io/enforce': 'privileged',
+              'pod-security.kubernetes.io/audit': 'privileged',
+              'pod-security.kubernetes.io/warn': 'privileged',
+              'security.openshift.io/scc.podSecurityLabelSync': 'false'}) }}"
+
+    - name: Start one probe pod per worker
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Pod
+          metadata:
+            name: "probe-{{ item | regex_replace('[^a-z0-9-]', '-') | truncate(50, true, '') }}"
+            namespace: "{{ preflight_probe_namespace }}"
+            labels: "{{ event_labels | combine({'app': 'preflight-probe'}) }}"
+          spec:
+            nodeName: "{{ item }}"
+            restartPolicy: Never
+            tolerations:
+              - operator: Exists
+            containers:
+              - name: probe
+                image: "{{ preflight_probe_image }}"
+                command:
+                  - /bin/sh
+                  - -c
+                  - |
+                    if [ -c /host-dev/kvm ]; then echo "KVM=yes"; else echo "KVM=no"; fi
+                    grep -m1 'model name' /proc/cpuinfo | sed 's/^.*: /MODEL=/'
+                securityContext:
+                  privileged: true
+                volumeMounts:
+                  - name: dev
+                    mountPath: /host-dev
+                    readOnly: true
+            volumes:
+              - name: dev
+                hostPath:
+                  path: /dev
+      loop: "{{ pf_unknown_kvm }}"
+
+    - name: Wait for probe pods to finish
+      kubernetes.core.k8s_info:
+        kind: Pod
+        namespace: "{{ preflight_probe_namespace }}"
+        label_selectors: ["app=preflight-probe"]
+      register: pf_probe_pods
+      until: >-
+        pf_probe_pods.resources | length == pf_unknown_kvm | length and
+        pf_probe_pods.resources | map(attribute='status.phase') | reject('in', ['Succeeded', 'Failed']) | list | length == 0
+      retries: 30
+      delay: 5
+
+    - name: Read probe logs
+      kubernetes.core.k8s_log:
+        namespace: "{{ preflight_probe_namespace }}"
+        name: "{{ item.metadata.name }}"
+      loop: "{{ pf_probe_pods.resources }}"
+      loop_control:
+        label: "{{ item.spec.nodeName }}"
+      register: pf_probe_logs
+
+    - name: Collect probe results
+      ansible.builtin.set_fact:
+        pf_probe: "{{ pf_probe | combine({item.item.spec.nodeName: {'kvm': 'KVM=yes' in item.log, 'cpu_model_name': (item.log_lines | select('match', '^MODEL=') | first | default('MODEL='))[6:] | trim}}) }}"
+      loop: "{{ pf_probe_logs.results }}"
+      loop_control:
+        label: "{{ item.item.spec.nodeName }}"
+  always:
+    - name: Delete probe namespace
+      kubernetes.core.k8s:
+        state: absent
+        api_version: v1
+        kind: Namespace
+        name: "{{ preflight_probe_namespace }}"
+        wait: true
+        wait_timeout: 300

@@ -1,0 +1,50 @@
+---
+# Also used by the cnv_removal role (include_role ... tasks_from: cnv_mtv).
+- name: Find HyperConverged CRs
+  kubernetes.core.k8s_info:
+    api_version: hco.kubevirt.io/v1beta1
+    kind: HyperConverged
+  register: pf_hco
+
+- name: Find OLM Subscriptions
+  kubernetes.core.k8s_info:
+    api_version: operators.coreos.com/v1alpha1
+    kind: Subscription
+  register: pf_subs
+
+- name: Find ForkliftController CRs (MTV)
+  kubernetes.core.k8s_info:
+    api_version: forklift.konveyor.io/v1beta1
+    kind: ForkliftController
+  register: pf_forklift
+
+- name: Find upstream KubeVirt CRs
+  kubernetes.core.k8s_info:
+    api_version: kubevirt.io/v1
+    kind: KubeVirt
+  register: pf_kubevirt_cr
+
+- name: Find VirtualMachines (all namespaces)
+  kubernetes.core.k8s_info:
+    api_version: kubevirt.io/v1
+    kind: VirtualMachine
+  register: pf_vms
+
+- name: Summarise virtualization status
+  ansible.builtin.set_fact:
+    pf_cnv_subs: "{{ pf_subs.resources | selectattr('spec.name', 'equalto', 'kubevirt-hyperconverged') | list }}"
+    pf_mtv_subs: "{{ pf_subs.resources | selectattr('spec.name', 'equalto', 'mtv-operator') | list }}"
+    pf_cnv_installed: "{{ (pf_hco.resources | default([]) | length > 0) or (pf_subs.resources | selectattr('spec.name', 'equalto', 'kubevirt-hyperconverged') | list | length > 0) }}"
+    pf_mtv_installed: "{{ (pf_forklift.resources | default([]) | length > 0) or (pf_subs.resources | selectattr('spec.name', 'equalto', 'mtv-operator') | list | length > 0) }}"
+    pf_upstream_kubevirt: "{{ pf_kubevirt_cr.resources | default([]) | rejectattr('metadata.namespace', 'equalto', 'openshift-cnv') | list | length > 0 }}"
+    pf_existing_vms: "{{ pf_vms.resources | default([]) | map(attribute='metadata.namespace') | zip(pf_vms.resources | default([]) | map(attribute='metadata.name')) | map('join', '/') | list }}"
+
+- name: Flag MTV
+  ansible.builtin.set_fact:
+    pf_blockers: "{{ pf_blockers + ['Migration Toolkit for Virtualization (MTV) is installed: CNV removal will stop. Remove MTV first or keep CNV.'] }}"
+  when: pf_mtv_installed | bool and pf_cnv_installed | bool
+
+- name: Flag CNV present
+  ansible.builtin.set_fact:
+    pf_warnings: "{{ pf_warnings + ['OpenShift Virtualization is installed: site.yml will REMOVE it (needs -e confirm_cnv_removal=true). ' ~ (pf_existing_vms | length) ~ ' VirtualMachine(s) in the cluster will be deleted.'] }}"
+  when: pf_cnv_installed | bool
