@@ -1,0 +1,97 @@
+# Replace CHANGEME_IMAGE_URL and CHANGEME_SSH_PUBLIC_KEY before applying.
+# If there is no default StorageClass, set storageClassName on the DataVolume.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kubevirt-workshop
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: final-vm-web
+  namespace: kubevirt-workshop
+spec:
+  type: ClusterIP
+  selector:
+    kubevirt.io/domain: final-functional-vm
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 80
+---
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: final-functional-vm
+  namespace: kubevirt-workshop
+spec:
+  runStrategy: Always
+  dataVolumeTemplates:
+    - metadata:
+        name: final-vm-disk
+      spec:
+        source:
+          http:
+            url: CHANGEME_IMAGE_URL
+        storage:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 20Gi
+  template:
+    metadata:
+      labels:
+        kubevirt.io/domain: final-functional-vm
+    spec:
+      domain:
+        cpu:
+          cores: 1
+        resources:
+          requests:
+            memory: 2Gi
+        devices:
+          disks:
+            - name: rootdisk
+              disk:
+                bus: virtio
+            - name: cloudinitdisk
+              disk:
+                bus: virtio
+          interfaces:
+            - name: default
+              masquerade: {}
+      networks:
+        - name: default
+          pod: {}
+      volumes:
+        - name: rootdisk
+          dataVolume:
+            name: final-vm-disk
+        - name: cloudinitdisk
+          cloudInitNoCloud:
+            userData: |
+              #cloud-config
+              users:
+                - name: workshop
+                  groups: wheel
+                  sudo: ALL=(ALL) NOPASSWD:ALL
+                  shell: /bin/bash
+                  ssh_authorized_keys:
+                    - CHANGEME_SSH_PUBLIC_KEY
+              packages:
+                - httpd
+              write_files:
+                - path: /var/www/html/index.html
+                  permissions: '0644'
+                  content: |
+                    <html>
+                    <head><title>KubeVirt Workshop Capstone</title></head>
+                    <body>
+                      <h1>KubeVirt capstone is working</h1>
+                      <p>This page is served by Apache httpd inside a persistent Linux VM.</p>
+                    </body>
+                    </html>
+              runcmd:
+                - [systemctl, enable, --now, httpd]
