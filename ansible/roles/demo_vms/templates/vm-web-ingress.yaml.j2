@@ -28,10 +28,14 @@ metadata:
     route.openshift.io/termination: edge
 spec:
   ingressClassName: {{ ingress_class_name }}
+{% if ingress_tls_secret %}
+  # With a secret, the Route uses this certificate. Without one, we must NOT add
+  # a tls block: OpenShift's ingress-to-route controller skips Ingresses whose
+  # TLS entry has no valid secret. The termination annotation alone gives an
+  # edge Route with the router's default certificate.
   tls:
     - hosts:
         - {{ demo_web_host }}
-{% if ingress_tls_secret %}
       secretName: {{ ingress_tls_secret }}
 {% endif %}
   rules:

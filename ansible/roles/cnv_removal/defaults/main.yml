@@ -26,3 +26,14 @@ cnv_protected_crd_groups:
 confirm_mtv_removal: false
 mtv_crd_group_regex: '(^|\.)forklift\.konveyor\.io$'
 mtv_console_plugin: forklift-console-plugin
+
+# Clusters provisioned with Argo CD (e.g. Red Hat Demo Platform) would reinstall
+# CNV/MTV/VMs on the next sync. Disable auto-sync on the Applications that manage
+# them (and their parent app-of-apps). Originals go to reports/argocd-original.yaml.
+cnv_disable_argocd_autosync: true
+# Kinds that mark an Argo CD Application as "managing virtualization".
+cnv_argocd_marker_kinds: [HyperConverged, ForkliftController, VirtualMachine, VirtualMachineInstance, DataVolume, Plan, Provider]
+cnv_argocd_marker_subscriptions: [kubevirt-hyperconverged, mtv-operator]
+# HCO can deadlock on delete (its webhook needs the SSP it just removed); after
+# this timeout the role removes the operator (Subscription/CSV) and then the finalizer.
+cnv_hco_wait_timeout: 600

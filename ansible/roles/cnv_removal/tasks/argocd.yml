@@ -1,0 +1,69 @@
+---
+# Turn off Argo CD auto-sync for every Application that manages OpenShift
+# Virtualization, MTV or VMs, plus the app-of-apps above them, so nothing
+# comes back after the removal. Nothing is deleted from Argo CD.
+- name: List Argo CD Applications
+  kubernetes.core.k8s_info:
+    api_version: argoproj.io/v1alpha1
+    kind: Application
+  register: cnv_argo
+
+- name: Find Applications that manage virtualization (and their parents)
+  ansible.builtin.set_fact:
+    cnv_argo_targets: >-
+      {%- set apps = cnv_argo.resources | default([]) -%}
+      {%- set hit = [] -%}
+      {%- for a in apps -%}
+      {%-   for r in a.status.resources | default([], true) -%}
+      {%-     if (r.kind in cnv_argocd_marker_kinds
+                  or (r.kind == 'Subscription' and r.name in cnv_argocd_marker_subscriptions))
+                and a.metadata.name not in hit -%}
+      {%-       set _ = hit.append(a.metadata.name) -%}
+      {%-     endif -%}
+      {%-   endfor -%}
+      {%- endfor -%}
+      {%- for _level in range(3) -%}
+      {%-   for a in apps -%}
+      {%-     for r in a.status.resources | default([], true) -%}
+      {%-       if r.kind == 'Application' and r.name in hit and a.metadata.name not in hit -%}
+      {%-         set _ = hit.append(a.metadata.name) -%}
+      {%-       endif -%}
+      {%-     endfor -%}
+      {%-   endfor -%}
+      {%- endfor -%}
+      {%- set out = [] -%}
+      {%- for a in apps if a.metadata.name in hit and (a.spec.syncPolicy | default({}, true)).automated is defined -%}
+      {%-   set _ = out.append({'namespace': a.metadata.namespace, 'name': a.metadata.name,
+                               'automated': a.spec.syncPolicy.automated}) -%}
+      {%- endfor -%}
+      {{ out }}
+
+- name: Show Applications whose auto-sync will be turned off
+  ansible.builtin.debug:
+    msg: "{{ cnv_argo_targets | map(attribute='name') | list or 'none' }}"
+
+- name: Save their original auto-sync settings
+  ansible.builtin.copy:
+    dest: "{{ reports_dir }}/argocd-original.yaml"
+    force: false
+    mode: "0644"
+    content: |
+      # Argo CD Applications whose spec.syncPolicy.automated was removed by {{ event_slug }}
+      # on {{ now(utc=true, fmt='%Y-%m-%d %H:%M UTC') }}. Re-enabling them reinstalls
+      # OpenShift Virtualization / MTV / the lab VMs.
+      {{ {'applications': cnv_argo_targets} | to_nice_yaml(indent=2) }}
+  when: cnv_argo_targets | length > 0
+  check_mode: false
+
+- name: Turn off auto-sync
+  kubernetes.core.k8s_json_patch:
+    api_version: argoproj.io/v1alpha1
+    kind: Application
+    namespace: "{{ item.namespace }}"
+    name: "{{ item.name }}"
+    patch:
+      - op: remove
+        path: /spec/syncPolicy/automated
+  loop: "{{ cnv_argo_targets }}"
+  loop_control:
+    label: "{{ item.namespace }}/{{ item.name }}"

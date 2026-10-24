@@ -8,6 +8,13 @@
     wait: true
     wait_timeout: "{{ teardown_wait_timeout }}"
 
+- name: Delete the metrics ClusterRoleBinding
+  kubernetes.core.k8s:
+    state: absent
+    api_version: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    name: kubevirt-manager-cluster-monitoring-view
+
 - name: Delete kubevirt-manager CRDs, RBAC and PriorityClasses
   ansible.builtin.include_role:
     name: kubevirt

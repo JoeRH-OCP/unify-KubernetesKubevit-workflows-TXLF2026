@@ -1,6 +1,6 @@
-# Texas Linux Fest 2026 — Upstream KubeVirt demo
+# Texas Linux Fest 2026: Unified Workload Migration with KubeVirt
 
-**Upstream KubeVirt: VMs the Kubernetes way.** This repo uses Ansible to deploy
+**Unified Workload Migration with KubeVirt.** This repo uses Ansible to deploy
 upstream [KubeVirt](https://kubevirt.io) and
 [CDI](https://github.com/kubevirt/containerized-data-importer) on an OpenShift
 bare-metal lab. It uses standard Kubernetes APIs (Ingress, DataVolumes on CSI,
@@ -83,7 +83,7 @@ flowchart TB
 
 **Places where it can't be 100% vanilla on OpenShift, and what this repo does instead:**
 
-1. **Ingress → Route.** We create plain Ingress objects (`ingressClassName: openshift-default`). OpenShift's ingress-to-route controller creates a Route for each one, and the annotation `route.openshift.io/termination: edge` gives TLS with the router's default certificate.
+1. **Ingress → Route.** We create plain Ingress objects (`ingressClassName: openshift-default`). OpenShift's ingress-to-route controller creates a Route for each one, and the annotation `route.openshift.io/termination: edge` gives TLS with the router's default certificate. The Ingress has **no `tls` block** unless `ingress_tls_secret` is set: a `tls` entry without a valid secret makes the controller skip the Ingress (event `IncompleteIngressToRouteRules`), and the URL shows "Application is not available".
 2. **Console and OAuth branding** only exist in OpenShift CRs: `Console` (operator.openshift.io), `OAuth` (config.openshift.io), `ConsoleNotification` and `ConsoleLink`. They are handled with `kubernetes.core.k8s`, because they're just CRs. The OAuth templates are written by this repo with the same Go template fields that `oc adm create-login-template` generates, so **`oc` is never needed**.
 3. **Removing OpenShift Virtualization** goes through OLM objects (Subscription, CSV). These are also plain CRs, managed with `kubernetes.core.k8s`.
 4. **Pod Security Admission.** The `kubevirt`, `cdi` and `demo-vms` namespaces are labelled `privileged`, with `security.openshift.io/scc.podSecurityLabelSync: "false"` so OpenShift doesn't overwrite the label.
@@ -305,12 +305,26 @@ ansible-navigator run teardown.yml -e confirm_teardown=true
 | demo.yml / site.yml | `quick`, `web`, `clone` (golden-image), `scale`, `network`, plus `migrate`, `snapshot`, `restore` (these three only run when asked for) |
 | teardown.yml | `demo`, `network`, `kubevirt_manager`, `cdi`, `kubevirt`, `branding` |
 
+### kubevirt-manager graphs
+
+The CPU, memory, network and storage graphs in the VM pages come from Prometheus. On OpenShift the role wires them automatically to the cluster's Thanos querier:
+- A read-only token of the `kubevirt-manager` ServiceAccount, with the `cluster-monitoring-view` role.
+- TLS checked with the OpenShift service CA.
+- Only `/api/v1/query` and `/api/v1/query_range` are exposed, behind the same basic auth.
+
+KubeVirt's own metrics (`kubevirt_vmi_*`) are already scraped by OpenShift monitoring: virt-operator creates the ServiceMonitor in `openshift-monitoring`.
+
+On a plain Kubernetes cluster, set `kubevirt_manager_prometheus_url` (e.g. `http://prometheus.monitoring.svc:9090`). Use `kubevirt_manager_metrics: none` to turn the graphs off.
+
 ### kubevirt-manager credentials
 
 Upstream kubevirt-manager only puts basic auth on the UI (`location /`). The `/k8s` path, a `kubectl proxy` with cluster-wide VM rights, stays open. This repo ships its own nginx `default.conf`, based on v1.5.4, with **auth on `/k8s` too**. Auth is always on:
 
 - **User:** `admin`
-- **Password:** `kubevirt_manager_auth_password`, or, if that's empty, a password generated once into `reports/kubevirt-manager-password`.
+- **Password:**
+  - **Multi-cluster runs** (`scripts/run-clusters.sh`): the cluster's own admin password from `clusters.vault.yml`, unless that cluster's `vars` set `kubevirt_manager_auth_password`.
+  - **Single-cluster runs:** a password generated once into `reports/kubevirt-manager-password` (`cat reports/kubevirt-manager-password`).
+  - To change it, run `ansible-navigator run site.yml --tags kubevirt_manager -e kubevirt_manager_auth_password='...'` once. The new password is saved to that same file, so later runs without `-e` keep it. To go back to a random one, delete the file and run again.
 
 ## Running on many clusters
 
@@ -418,7 +432,7 @@ k get vm -l app.kubernetes.io/component=clone
 
 Show **kubevirt-manager** in the browser (TXLF branding), and the VMs on their nodes.
 
-### 6. Live migration — the audience watches the landing page (4 min)
+### 6. Live migration: the audience watches the landing page (4 min)
 
 Open `https://vm-web.apps.<domain>`. It shows the node and refreshes every 2 seconds.
 
@@ -567,6 +581,7 @@ kubectl describe pod -l vm.kubevirt.io/name=<vm>
 
 - **The default IngressController uses an operator-generated CA** unless `spec.defaultCertificate` is set; preflight reports this. Before the talk, either accept the warning in each tab, or set a trusted wildcard cert (for example from Let's Encrypt) on the IngressController.
 - **Using a different certificate for the demo hosts:** create a TLS Secret in each namespace and set `ingress_tls_secret`.
+- **"Application is not available" / Ingress with no Route:** check the events with `kubectl -n demo-vms describe ingress vm-web`. `IncompleteIngressToRouteRules ... Invalid or missing TLS secret` means a `tls` entry points to a missing secret.
 - **Ingress with no Route:**
 
   ```bash
@@ -595,6 +610,17 @@ kubectl describe pod -l vm.kubevirt.io/name=<vm>
 - **Or pre-pull the image** (see the checklist).
 
 Everything else in this repo comes from quay.io, github.com and fedoraproject.org.
+
+### kubevirt-manager shows no NICs, disks or graphs
+
+- **Empty Networking/Disks tabs:** kubevirt-manager 1.5.4 reads `spec.template.spec.domain.resources.requests.memory` without checking it exists. VMs that only set `domain.memory.guest` break the page before the NICs and disks load. The demo VMs and `manifests/` set `resources.requests.memory` (plus `cpu.sockets`/`threads`) for this reason. Do the same in any VM you want to see there.
+- **No graphs:** check the metrics backend in the `kubevirt_manager` role output.
+
+  ```bash
+  kubectl -n kubevirt-manager get secret kubevirt-manager-prometheus
+  ```
+
+  Graphs only show for running VMs, and need a few minutes of data.
 
 ### Other
 

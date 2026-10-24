@@ -13,6 +13,9 @@
 #   password     the random password from the order
 #   api_url      optional, when the API doesn't follow the pattern above
 #   vars         optional overrides for this cluster only (any group_vars key)
+#
+# kubevirt-manager uses the same admin/password as the cluster (basic auth),
+# unless you set vars.kubevirt_manager_auth_password.
 clusters:
   - name: lab01
     console_url: https://console-openshift-console.apps.cluster-abc12.example.com

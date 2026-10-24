@@ -3,12 +3,13 @@
 
 event_name: "Texas Linux Fest 2026"
 event_slug: "txlf-2026"
-event_tagline: "Upstream KubeVirt: VMs the Kubernetes way"
+# Demo title: shown on the landing page, MOTD, login page and kubevirt-manager footer.
+event_tagline: "Unified Workload Migration with KubeVirt"
 event_url: "https://2026.texaslinuxfest.org/"
 event_dates: "November 6-7, 2026 - Austin, TX"
 
 # OpenShift console banner (ConsoleNotification) and links.
-banner_text: "Welcome to Texas Linux Fest 2026 — live demo: upstream KubeVirt on Kubernetes"
+banner_text: "Welcome to Texas Linux Fest 2026 - Unified Workload Migration with KubeVirt"
 banner_link: "https://2026.texaslinuxfest.org/"
 banner_link_text: "2026.texaslinuxfest.org"
 console_product_name: "TXLF 2026 Demo Cluster"

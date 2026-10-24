@@ -1,0 +1,18 @@
+---
+- name: Wait until HCO-managed CRs are cleaned up (KubeVirt, CDI, SSP, NetworkAddonsConfig)
+  kubernetes.core.k8s_info:
+    api_version: "{{ item.api_version }}"
+    kind: "{{ item.kind }}"
+    name: "{{ item.name }}"
+    namespace: "{{ item.namespace | default(omit) }}"
+  loop:
+    - { api_version: kubevirt.io/v1, kind: KubeVirt, name: kubevirt-kubevirt-hyperconverged, namespace: "{{ cnv_namespace }}" }
+    - { api_version: cdi.kubevirt.io/v1beta1, kind: CDI, name: cdi-kubevirt-hyperconverged }
+    - { api_version: ssp.kubevirt.io/v1beta2, kind: SSP, name: ssp-kubevirt-hyperconverged, namespace: "{{ cnv_namespace }}" }
+    - { api_version: networkaddonsoperator.network.kubevirt.io/v1, kind: NetworkAddonsConfig, name: cluster }
+  loop_control:
+    label: "{{ item.kind }}/{{ item.name }}"
+  register: cnv_children
+  until: cnv_children.resources | default([]) | length == 0
+  retries: 60
+  delay: 10

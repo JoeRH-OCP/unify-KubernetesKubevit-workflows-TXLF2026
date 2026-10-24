@@ -1,5 +1,5 @@
 # Standard Ingress. On OpenShift the ingress-to-route controller turns it into a
-# Route; the annotation asks for edge TLS with the router's default certificate.
+# Route; the annotation asks for edge TLS with the router default certificate.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -13,10 +13,14 @@ metadata:
     haproxy.router.openshift.io/timeout: 1h
 spec:
   ingressClassName: {{ ingress_class_name }}
+{% if ingress_tls_secret %}
+  # With a secret, the Route uses this certificate. Without one, we must NOT add
+  # a tls block: OpenShift's ingress-to-route controller skips Ingresses whose
+  # TLS entry has no valid secret. The termination annotation alone gives an
+  # edge Route with the router's default certificate.
   tls:
     - hosts:
         - {{ kubevirt_manager_host }}
-{% if ingress_tls_secret %}
       secretName: {{ ingress_tls_secret }}
 {% endif %}
   rules:

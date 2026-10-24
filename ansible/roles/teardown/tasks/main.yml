@@ -13,6 +13,12 @@
     quiet: true
   tags: [always]
 
+- name: Refresh the API discovery cache
+  kubernetes.core.k8s_cluster_info:
+    invalidate_cache: true
+  changed_when: false
+  tags: [always]
+
 - name: Demo VMs and namespace
   ansible.builtin.import_tasks: demo.yml
   tags: [demo]

@@ -26,8 +26,12 @@
       domain:
         cpu:
           cores: "{{ vm_cpu_cores | int }}"
-        memory:
-          guest: "{{ vm_memory }}"
+          sockets: 1
+          threads: 1
+        # kubevirt-manager reads cpu cores/sockets/threads and resources.requests.memory
+        resources:
+          requests:
+            memory: "{{ vm_memory }}"
         devices:
           disks:
             - name: rootdisk

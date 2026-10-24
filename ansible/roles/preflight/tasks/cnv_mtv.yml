@@ -48,7 +48,23 @@
       {{ (pf_hco.resources | default([]) | first | default({})).status.conditions | default([])
          | selectattr('type', 'equalto', 'Available') | selectattr('status', 'equalto', 'True') | list | length > 0 }}
 
+- name: Is OpenShift Virtualization / MTV managed by Argo CD?
+  ansible.builtin.set_fact:
+    pf_virt_argocd: >-
+      {{ (pf_hco.resources | default([]) + pf_cnv_subs + pf_mtv_subs)
+         | map(attribute='metadata.annotations', default={}) | map('default', {}, true)
+         | map('list') | flatten | select('equalto', 'argocd.argoproj.io/tracking-id') | list | length > 0 }}
+
 # --- virt_mode: kubevirt (upstream) -------------------------------------------
+- name: Note Argo CD management (kubevirt mode)
+  ansible.builtin.set_fact:
+    pf_warnings: >-
+      {{ pf_warnings + ['OpenShift Virtualization/MTV are deployed by Argo CD: cnv_removal will turn OFF auto-sync on the '
+         ~ 'Applications that manage them (and their parents) so they do not come back. Originals go to reports/argocd-original.yaml.'] }}
+  when:
+    - virt_mode | default('kubevirt') == 'kubevirt'
+    - pf_virt_argocd | bool
+
 - name: Flag MTV (kubevirt mode, removal not confirmed)
   ansible.builtin.set_fact:
     pf_blockers: >-

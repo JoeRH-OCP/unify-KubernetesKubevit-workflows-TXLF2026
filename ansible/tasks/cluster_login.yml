@@ -89,11 +89,17 @@
           current-context: "{{ cluster.name }}"
       no_log: true
 
-    - name: "Write vars.yml (cluster_name + overrides) | {{ cluster.name }}"
+    # kubevirt-manager reuses the cluster's admin password (one less password
+    # to hand out); a `vars.kubevirt_manager_auth_password` entry still wins.
+    - name: "Write vars.yml (cluster_name, kubevirt-manager password, overrides) | {{ cluster.name }}"
       ansible.builtin.copy:
         dest: "{{ playbook_dir }}/clusters/{{ cluster.name }}/vars.yml"
         mode: "0600"
-        content: "{{ {'cluster_name': cluster.name} | combine(cluster.vars | default({})) | to_nice_yaml(indent=2) }}"
+        content: >-
+          {{ {'cluster_name': cluster.name,
+              'kubevirt_manager_auth_password': cluster.password}
+             | combine(cluster.vars | default({})) | to_nice_yaml(indent=2) }}
+      no_log: true
 
     - name: "Record success | {{ cluster.name }}"
       ansible.builtin.set_fact:

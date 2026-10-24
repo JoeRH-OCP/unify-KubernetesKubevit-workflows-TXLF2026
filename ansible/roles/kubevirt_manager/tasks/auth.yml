@@ -3,11 +3,36 @@
 # /k8s proxy to the Kubernetes API, which runs with cluster-wide VM rights.
 # Our default.conf (templates/default.conf.j2) adds auth to /k8s as well, and
 # auth is always on: if no password is given we generate one.
-- name: Pick the kubevirt-manager password
+#
+# The password file is the source of truth between runs: a password given with
+# kubevirt_manager_auth_password (e.g. -e on one run) is saved there, so later
+# runs without -e keep it instead of going back to a generated one.
+- name: Ensure reports directory exists
+  ansible.builtin.file:
+    path: "{{ kubevirt_manager_password_file | dirname }}"
+    state: directory
+    mode: "0755"
+  check_mode: false
+
+- name: Save the given password so later runs keep it
+  ansible.builtin.copy:
+    dest: "{{ kubevirt_manager_password_file }}"
+    content: "{{ kubevirt_manager_auth_password }}\n"
+    mode: "0600"
+  when: kubevirt_manager_auth_password | length > 0
+  check_mode: false
+  no_log: true
+
+- name: Pick the kubevirt-manager password (saved, or generated once)
   ansible.builtin.set_fact:
+    # Read the file as plain text (the password lookup would parse " salt=").
     kvm_password: >-
       {{ kubevirt_manager_auth_password
-         or lookup('ansible.builtin.password', kubevirt_manager_password_file, chars=['ascii_letters', 'digits'], length=20) }}
+         if kubevirt_manager_auth_password | length > 0
+         else (lookup('ansible.builtin.file', kubevirt_manager_password_file)
+               if kubevirt_manager_password_file is file
+               else lookup('ansible.builtin.password', kubevirt_manager_password_file,
+                           chars=['ascii_letters', 'digits'], length=20)) }}
   no_log: true
 
 - name: Basic auth config (auth.d)

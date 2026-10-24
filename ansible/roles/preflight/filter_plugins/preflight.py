@@ -104,11 +104,16 @@ def preflight_nodes(nodes, pods, exclude_odf=True, probe=None):
         allocatable = status.get("allocatable") or {}
         capacity = status.get("capacity") or {}
 
-        # /dev/kvm: KubeVirt/CNV device plugin > NFD CPU flags > probe pod > unknown.
+        # /dev/kvm: KubeVirt/CNV device plugin > KubeVirt node labels > NFD CPU flags >
+        # probe pod > unknown. Capacity 0 only means the device plugin is not running
+        # (e.g. right after OpenShift Virtualization was removed), not "no KVM".
         kvm, kvm_source = None, "unknown"
-        if KVM_RESOURCE in capacity:
+        has_kubevirt_labels = any(k.startswith((CPU_MODEL_PREFIX, HOST_MODEL_PREFIX)) for k in labels)
+        if k8s_mem_to_bytes(capacity.get(KVM_RESOURCE)) > 0:
             # Capacity is a quantity such as "1k" (KubeVirt advertises 1000 slots).
-            kvm, kvm_source = k8s_mem_to_bytes(capacity.get(KVM_RESOURCE)) > 0, "device-plugin"
+            kvm, kvm_source = True, "device-plugin"
+        elif has_kubevirt_labels:
+            kvm, kvm_source = True, "kubevirt node labels"
         elif labels.get(NFD_VMX) == "true" or labels.get(NFD_SVM) == "true":
             kvm, kvm_source = True, "nfd (cpu flags only)"
         elif name in probe:
