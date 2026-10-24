@@ -7,7 +7,7 @@ Cada persona o pareja recibe un cluster dedicado que el instructor preparó ante
 
 ## Elige tu lab
 
-El instructor comparte una hoja de Google Sheets con un renglón por cada cluster de laboratorio (el link está en la pantalla y en el chat de la sesión). Cada renglón tiene:
+El instructor comparte una hoja de Google Sheets con un renglón por cada cluster de laboratorio (escanea el código QR de la pantalla, o usa el link del chat de la sesión). Cada renglón tiene:
 
 - **URL de la consola:** `https://console-openshift-console.apps.<cluster>.<domain>`
 - **Usuario:** `admin`

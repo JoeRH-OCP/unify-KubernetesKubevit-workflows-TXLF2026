@@ -7,7 +7,7 @@ Each person or pair gets a dedicated cluster that the instructor prepared before
 
 ## Pick your lab
 
-The instructor shares a Google Sheet with one row per lab cluster (the link is on the screen and in the session chat). Each row has:
+The instructor shares a Google Sheet with one row per lab cluster (scan the QR code on the screen, or use the link in the session chat). Each row has:
 
 - **Console URL:** `https://console-openshift-console.apps.<cluster>.<domain>`
 - **User:** `admin`
