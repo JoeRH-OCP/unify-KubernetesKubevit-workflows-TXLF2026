@@ -24,11 +24,11 @@ Participants understand how KubeVirt works and what it solves; manage the VM lif
 | 0:05 | [2. How KubeVirt works](session/02-how-kubevirt-works.md) | 15 min | A VM created with `kubectl apply`; its Pod and QEMU process found |
 | 0:20 | [3. VM lifecycle](session/03-vm-lifecycle.md) | 10 min | SSH, consoles, start/stop/restart, `runStrategy` |
 | 0:30 | [4. Storage](session/04-storage.md) | 15 min | A VM cloned from a golden image in seconds |
-| 0:45 | [5. Networking](session/05-networking.md) | 12 min | A container talks to a VM through a Service |
-| 0:57 | [6. Day-2 operations](session/06-day2-operations.md) | 20 min | Live migration, node maintenance, snapshot/restore, metrics |
-| 1:17 | [7. Trade-offs and one control plane](session/07-tradeoffs-and-wrap-up.md) | 10 min | Trade-offs, containers or VMs, questions |
+| 0:45 | [5. Networking](session/05-networking.md) | 15 min | A container talks to a VM through a Service |
+| 1:00 | [6. Day-2 operations](session/06-day2-operations.md) | 20 min | Live migration, node maintenance, snapshot/restore, metrics |
+| 1:20 | [7. Trade-offs and one control plane](session/07-tradeoffs-and-wrap-up.md) | 10 min | Trade-offs, containers or VMs, questions |
 
-Each module has a Spanish version (`*.es.md`) next to it. The last 3 minutes are buffer.
+Each module has a Spanish version (`*.es.md`) next to it. The modules fill the 90 minutes; there is no buffer, so see the instructor guide for what to cut if the room is behind.
 
 ## For instructors
 

@@ -1,6 +1,6 @@
 # Module 5: Networking (VMs and containers on the same network)
 
-**Time:** 12 minutes
+**Time:** 15 minutes
 **Goal:** See that a VM sits on the Pod network, is reached through a normal Service, and talks to containers by DNS name.
 
 ## A VM on the Pod network

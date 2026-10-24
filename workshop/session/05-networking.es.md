@@ -1,6 +1,6 @@
 # Módulo 5: Redes (VMs y contenedores en la misma red)
 
-**Tiempo:** 12 minutos
+**Tiempo:** 15 minutos
 **Objetivo:** Ve que una VM vive en la red de Pods, se alcanza con un Service normal y habla con contenedores por nombre DNS.
 
 ## Una VM en la red de Pods

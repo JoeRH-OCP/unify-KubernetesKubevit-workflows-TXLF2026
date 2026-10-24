@@ -82,11 +82,10 @@ Tu propia laptop, para el proyector:
 | 0:20 | 3. Ciclo de vida de la VM | SSH, consola serial, stop/start/restart, `runStrategy` | El SSH a `vm-live` funciona |
 | 0:30 | 4. Almacenamiento | `golden-image`, Block/RWX, clon desde snapshot | DataVolume de `vm-clone-live` en `Succeeded` |
 | 0:45 | 5. Redes | IP del Pod, selector del Service, un contenedor llamando a la VM, `virtctl expose` | El contenedor `curl` recibe `200` |
-| 0:57 | 6. Operaciones de día 2 | Proyecta la landing durante `virtctl migrate`; cordon; snapshot/restore en `vm-web` mientras ellos lo hacen en `vm-clone-live`; Observe > Metrics | El nodo cambió; `/srv/data.txt` restaurado |
-| 1:17 | 7. Trade-offs y un solo plano de control | Tabla del plano de control, trade-offs honestos, ¿contenedores o VMs?, preguntas | |
-| 1:27 | Margen | Preguntas, rezagados, plan B | |
+| 1:00 | 6. Operaciones de día 2 | Proyecta la landing durante `virtctl migrate`; cordon; snapshot/restore en `vm-web` mientras ellos lo hacen en `vm-clone-live`; Observe > Metrics | El nodo cambió; `/srv/data.txt` restaurado |
+| 1:20 | 7. Trade-offs y un solo plano de control | Tabla del plano de control, trade-offs honestos, ¿contenedores o VMs?, preguntas | |
 
-Si el grupo va atrasado, recorta el paso de cordon y las consultas de métricas del Módulo 6, y el `virtctl expose` del Módulo 5. Nunca recortes la migración en vivo ni los trade-offs: es lo que promete el abstract.
+No hay margen: los siete módulos ocupan los 90 minutos. Si el grupo va atrasado, recorta el paso de cordon y las consultas de métricas del Módulo 6, y el `virtctl expose` del Módulo 5. Nunca recortes la migración en vivo ni los trade-offs: es lo que promete el abstract.
 
 ## 5. Plan B
 
