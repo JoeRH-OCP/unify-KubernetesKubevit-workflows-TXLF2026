@@ -33,6 +33,17 @@
           -e confirm_cnv_removal=true (add --check first to preview).
         quiet: true
 
+    - name: Ensure reports directory exists
+      ansible.builtin.file:
+        path: "{{ reports_dir }}"
+        state: directory
+        mode: "0755"
+      check_mode: false
+
+    - name: Turn off Argo CD auto-sync for CNV/MTV/VM Applications
+      ansible.builtin.include_tasks: argocd.yml
+      when: cnv_disable_argocd_autosync | bool
+
     - name: Stop if MTV is installed and its removal was not confirmed
       ansible.builtin.fail:
         msg: >-

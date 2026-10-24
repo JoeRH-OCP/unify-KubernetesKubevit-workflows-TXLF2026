@@ -78,6 +78,7 @@ Free on eligible workers: {{ pf_eligible_mem_free | human_bytes }} RAM, {{ '%.1f
 |---|---|
 | OpenShift Virtualization (HCO) | {{ ('INSTALLED ' ~ pf_cnv_version) if pf_cnv_installed | bool else 'not installed' }} |
 | MTV (Forklift) | {{ 'INSTALLED' if pf_mtv_installed | bool else 'not installed' }} |
+| Managed by Argo CD | {{ 'yes' if pf_virt_argocd | bool else 'no' }} |
 | Upstream KubeVirt CR | {{ 'present' if pf_upstream_kubevirt | bool else 'not present' }} |
 | VirtualMachines | {{ pf_existing_vms | length }}{{ (': ' ~ (pf_existing_vms | join(', '))) if pf_existing_vms else '' }} |
 
