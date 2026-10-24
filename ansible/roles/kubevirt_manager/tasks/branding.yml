@@ -38,5 +38,5 @@
       {{ (lookup('ansible.builtin.template', 'txlf.css.j2')
           ~ lookup('ansible.builtin.template', 'default.conf.j2')
           ~ (kvm_images.results | map(attribute='content') | join)
-          ~ kvm_password) | hash('sha256') }}
+          ~ kvm_password ~ kvm_metrics_conf | default('')) | hash('sha256') }}
   no_log: true

@@ -21,8 +21,12 @@ spec:
       domain:
         cpu:
           cores: 1
-        memory:
-          guest: 2Gi
+          sockets: 1
+          threads: 1
+        # kubevirt-manager reads cpu cores/sockets/threads and resources.requests.memory
+        resources:
+          requests:
+            memory: 2Gi
         devices:
           disks:
             - name: containerdisk

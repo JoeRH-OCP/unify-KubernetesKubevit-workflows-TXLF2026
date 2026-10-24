@@ -5,3 +5,15 @@ kubevirt_manager_host: "kubevirt-manager.{{ demo_ingress_domain }}"
 kubevirt_manager_title: "{{ event_name }} · KubeVirt Manager"
 # Generated once and kept in reports/ when kubevirt_manager_auth_password is empty.
 kubevirt_manager_password_file: "{{ reports_dir }}/kubevirt-manager-password"
+
+# Graphs (CPU, memory, network, storage) in the VM pages need Prometheus.
+#   auto: use OpenShift's Thanos querier when it exists (read-only token of the
+#         kubevirt-manager ServiceAccount, cluster-monitoring-view role, TLS
+#         checked with the service CA); otherwise use kubevirt_manager_prometheus_url.
+#   none: no graphs.
+kubevirt_manager_metrics: auto
+# Plain Prometheus without auth (non-OpenShift clusters), e.g. http://prometheus.monitoring.svc:9090
+kubevirt_manager_prometheus_url: ""
+kubevirt_manager_thanos_service: thanos-querier
+kubevirt_manager_thanos_namespace: openshift-monitoring
+kubevirt_manager_thanos_port: 9091

@@ -305,6 +305,17 @@ ansible-navigator run teardown.yml -e confirm_teardown=true
 | demo.yml / site.yml | `quick`, `web`, `clone` (golden-image), `scale`, `network`, plus `migrate`, `snapshot`, `restore` (these three only run when asked for) |
 | teardown.yml | `demo`, `network`, `kubevirt_manager`, `cdi`, `kubevirt`, `branding` |
 
+### kubevirt-manager graphs
+
+The CPU, memory, network and storage graphs in the VM pages come from Prometheus. On OpenShift the role wires them automatically to the cluster's Thanos querier:
+- A read-only token of the `kubevirt-manager` ServiceAccount, with the `cluster-monitoring-view` role.
+- TLS checked with the OpenShift service CA.
+- Only `/api/v1/query` and `/api/v1/query_range` are exposed, behind the same basic auth.
+
+KubeVirt's own metrics (`kubevirt_vmi_*`) are already scraped by OpenShift monitoring: virt-operator creates the ServiceMonitor in `openshift-monitoring`.
+
+On a plain Kubernetes cluster, set `kubevirt_manager_prometheus_url` (e.g. `http://prometheus.monitoring.svc:9090`). Use `kubevirt_manager_metrics: none` to turn the graphs off.
+
 ### kubevirt-manager credentials
 
 Upstream kubevirt-manager only puts basic auth on the UI (`location /`). The `/k8s` path, a `kubectl proxy` with cluster-wide VM rights, stays open. This repo ships its own nginx `default.conf`, based on v1.5.4, with **auth on `/k8s` too**. Auth is always on:
@@ -599,6 +610,17 @@ kubectl describe pod -l vm.kubevirt.io/name=<vm>
 - **Or pre-pull the image** (see the checklist).
 
 Everything else in this repo comes from quay.io, github.com and fedoraproject.org.
+
+### kubevirt-manager shows no NICs, disks or graphs
+
+- **Empty Networking/Disks tabs:** kubevirt-manager 1.5.4 reads `spec.template.spec.domain.resources.requests.memory` without checking it exists. VMs that only set `domain.memory.guest` break the page before the NICs and disks load. The demo VMs and `manifests/` set `resources.requests.memory` (plus `cpu.sockets`/`threads`) for this reason. Do the same in any VM you want to see there.
+- **No graphs:** check the metrics backend in the `kubevirt_manager` role output.
+
+  ```bash
+  kubectl -n kubevirt-manager get secret kubevirt-manager-prometheus
+  ```
+
+  Graphs only show for running VMs, and need a few minutes of data.
 
 ### Other
 

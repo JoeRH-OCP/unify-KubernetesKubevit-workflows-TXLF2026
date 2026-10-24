@@ -25,6 +25,9 @@
 - name: Basic auth credentials
   ansible.builtin.import_tasks: auth.yml
 
+- name: Metrics for the VM graphs (Prometheus / OpenShift Thanos)
+  ansible.builtin.import_tasks: metrics.yml
+
 - name: Branding assets and nginx config
   ansible.builtin.import_tasks: branding.yml
 

@@ -1,0 +1,123 @@
+---
+# kubevirt-manager asks ./api/v1/query and ./api/v1/query_range for
+# kubevirt_vmi_* metrics. We add an nginx location (in location.d) that proxies
+# only those two endpoints, behind the same basic auth as the rest of the UI.
+- name: Look for OpenShift's Thanos querier
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Service
+    namespace: "{{ kubevirt_manager_thanos_namespace }}"
+    name: "{{ kubevirt_manager_thanos_service }}"
+  register: kvm_thanos_svc
+  when: kubevirt_manager_metrics != 'none'
+
+- name: Pick the metrics backend
+  ansible.builtin.set_fact:
+    kvm_metrics_mode: >-
+      {{ 'none' if kubevirt_manager_metrics == 'none'
+         else ('thanos' if (kvm_thanos_svc.resources | default([]) | length > 0)
+               else ('url' if kubevirt_manager_prometheus_url | length > 0 else 'none')) }}
+
+- name: OpenShift monitoring access (Thanos)
+  when: kvm_metrics_mode == 'thanos'
+  block:
+    - name: Let kubevirt-manager read cluster metrics (cluster-monitoring-view)
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: rbac.authorization.k8s.io/v1
+          kind: ClusterRoleBinding
+          metadata:
+            name: kubevirt-manager-cluster-monitoring-view
+            labels: "{{ event_labels | combine({'app': 'kubevirt-manager'}) }}"
+          roleRef:
+            apiGroup: rbac.authorization.k8s.io
+            kind: ClusterRole
+            name: cluster-monitoring-view
+          subjects:
+            - kind: ServiceAccount
+              name: kubevirt-manager
+              namespace: "{{ kubevirt_manager_namespace }}"
+
+    - name: Long-lived token for the kubevirt-manager ServiceAccount
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          type: kubernetes.io/service-account-token
+          metadata:
+            name: kubevirt-manager-metrics-token
+            namespace: "{{ kubevirt_manager_namespace }}"
+            labels: "{{ event_labels | combine({'app': 'kubevirt-manager'}) }}"
+            annotations:
+              kubernetes.io/service-account.name: kubevirt-manager
+
+    # OpenShift's service-ca operator fills in service-ca.crt.
+    - name: Service CA bundle to verify Thanos' TLS certificate
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: kubevirt-manager-service-ca
+            namespace: "{{ kubevirt_manager_namespace }}"
+            labels: "{{ event_labels | combine({'app': 'kubevirt-manager'}) }}"
+            annotations:
+              service.beta.openshift.io/inject-cabundle: "true"
+
+    - name: Wait for the token
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Secret
+        namespace: "{{ kubevirt_manager_namespace }}"
+        name: kubevirt-manager-metrics-token
+      register: kvm_token
+      until: (kvm_token.resources | first | default({})).data.token is defined
+      retries: 30
+      delay: 2
+      no_log: true
+      when: not ansible_check_mode
+
+    - name: Wait for the service CA bundle
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: ConfigMap
+        namespace: "{{ kubevirt_manager_namespace }}"
+        name: kubevirt-manager-service-ca
+      register: kvm_service_ca
+      until: (kvm_service_ca.resources | first | default({})).data['service-ca.crt'] is defined
+      retries: 30
+      delay: 2
+      when: not ansible_check_mode
+
+- name: Nginx location for the metrics backend
+  ansible.builtin.set_fact:
+    kvm_metrics_conf: "{{ lookup('ansible.builtin.template', 'prometheus.conf.j2') if kvm_metrics_mode != 'none' else '' }}"
+  vars:
+    kvm_metrics_token: >-
+      {{ ((kvm_token.resources | default([]) | first | default({})).data | default({})).token | default('') | b64decode }}
+  no_log: true
+
+- name: Metrics location Secret (mounted in /etc/nginx/location.d/)
+  kubernetes.core.k8s:
+    state: "{{ 'present' if kvm_metrics_mode != 'none' else 'absent' }}"
+    definition:
+      apiVersion: v1
+      kind: Secret
+      type: Opaque
+      metadata:
+        name: kubevirt-manager-prometheus
+        namespace: "{{ kubevirt_manager_namespace }}"
+        labels: "{{ event_labels | combine({'app': 'kubevirt-manager'}) }}"
+      data:
+        prometheus.conf: "{{ kvm_metrics_conf | b64encode }}"
+  no_log: true
+
+- name: Show the metrics backend
+  ansible.builtin.debug:
+    msg: >-
+      kubevirt-manager graphs: {{ {'thanos': 'OpenShift Thanos querier (' ~ kubevirt_manager_thanos_service ~ '.' ~ kubevirt_manager_thanos_namespace ~ ')',
+                                  'url': kubevirt_manager_prometheus_url,
+                                  'none': 'disabled (no Prometheus found)'}[kvm_metrics_mode] }}

@@ -71,8 +71,11 @@ spec:
               mountPath: /etc/nginx/auth.d/
             - name: auth-secret
               mountPath: /etc/nginx/secret.d/
+            # Our metrics location (Secret: it carries a read-only token).
             - name: prometheus-config
               mountPath: /etc/nginx/location.d/
+            - name: service-ca
+              mountPath: /etc/nginx/service-ca/
       volumes:
         - name: cache-volume
           emptyDir: {}
@@ -95,6 +98,10 @@ spec:
           secret:
             secretName: auth-secret
         - name: prometheus-config
+          secret:
+            secretName: kubevirt-manager-prometheus
+            optional: true
+        - name: service-ca
           configMap:
-            name: prometheus-config
+            name: kubevirt-manager-service-ca
             optional: true
