@@ -38,7 +38,7 @@ Each module has a Spanish version (`*.es.md`) next to it. The modules fill the 9
 
 ## Self-paced extras
 
-Six labs, most from the original two-day material, for deeper study after the session. Topics the 90-minute session already covers were removed from them.
+Six labs, most from the original two-day material, for deeper study after the session. Topics the workshop already covers were removed from them.
 
 | Lab | Topics |
 |---|---|

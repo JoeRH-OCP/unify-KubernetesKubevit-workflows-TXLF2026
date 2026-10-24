@@ -1,7 +1,7 @@
 # Laboratorio 3: Instala KubeVirt y verifica que esté listo
 
 **Tiempo sugerido:** 60–90 minutos  
-**Objetivo:** instalar KubeVirt y CDI en un cluster y confirmar que está listo para VMs. Cómo funciona KubeVirt y el ciclo de vida de las VMs están en los [Módulos 2 y 3 de la sesión de 90 minutos](../session/02-how-kubevirt-works.es.md).
+**Objetivo:** instalar KubeVirt y CDI en un cluster y confirmar que está listo para VMs. Cómo funciona KubeVirt y el ciclo de vida de las VMs están en los [Módulos 2 y 3 del taller](../session/02-how-kubevirt-works.es.md).
 
 ## Instalación y readiness
 

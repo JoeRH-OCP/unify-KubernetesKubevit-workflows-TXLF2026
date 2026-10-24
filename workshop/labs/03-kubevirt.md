@@ -1,7 +1,7 @@
 # Lab 3: Install KubeVirt and check readiness
 
 **Suggested time:** 60–90 minutes  
-**Goal:** Install KubeVirt and CDI on a cluster and confirm it is ready for VMs. How KubeVirt works and the VM lifecycle are covered in [Modules 2 and 3 of the 90-minute session](../session/02-how-kubevirt-works.md).
+**Goal:** Install KubeVirt and CDI on a cluster and confirm it is ready for VMs. How KubeVirt works and the VM lifecycle are covered in [Modules 2 and 3 of the workshop](../session/02-how-kubevirt-works.md).
 
 ## Installation and readiness
 
