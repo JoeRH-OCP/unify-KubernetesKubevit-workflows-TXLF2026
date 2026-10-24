@@ -36,6 +36,18 @@ Each module has a Spanish version (`*.es.md`) next to it. The modules fill the 9
 - [Prerequisites](prerequisites.md): cluster readiness checklist.
 - The automation itself: [ansible/README.md](../ansible/README.md).
 
+## Export the slides (PDF and PowerPoint)
+
+To share the slides with the organizers, run from the repository root:
+
+```bash
+workshop/tools/export-slides.sh
+```
+
+It writes `workshop/exports/kubevirt-without-fear-slides-en.pdf` and `.pptx`, plus the same files with `-es` for Spanish. The PDF looks exactly like the web slides; the PowerPoint has editable text in the same colors. It needs Google Chrome (or Chromium or Edge) and [uv](https://docs.astral.sh/uv/) (or `pip install python-pptx`). The `exports/` folder is not committed.
+
+Before the final export, save the QR code of the lab sheet as `workshop/assets/qr/lab-sheet.png` (see [assets/qr/README.md](assets/qr/README.md)). Without it, the Module 1 slide shows an empty QR box.
+
 ## Self-paced extras
 
 Six labs, most from the original two-day material, for deeper study after the session. Topics the workshop already covers were removed from them.
