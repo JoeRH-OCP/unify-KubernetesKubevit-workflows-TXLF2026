@@ -1,0 +1,32 @@
+---
+# Remove a console plugin from consoles.operator.openshift.io/cluster spec.plugins.
+# Input: plugin_name.
+- name: Read Console operator config
+  kubernetes.core.k8s_info:
+    api_version: operator.openshift.io/v1
+    kind: Console
+    name: cluster
+  register: cp_console
+
+- name: Find the plugin in the console plugin list
+  ansible.builtin.set_fact:
+    cp_plugin_index: "{{ (cp_console.resources[0].spec.plugins | default([])).index(plugin_name) }}"  # noqa: jinja[invalid] guarded by when
+  when: plugin_name in (cp_console.resources[0].spec.plugins | default([]))
+
+- name: Remove the plugin from the console plugin list
+  kubernetes.core.k8s_json_patch:
+    api_version: operator.openshift.io/v1
+    kind: Console
+    name: cluster
+    patch:
+      - op: test
+        path: "/spec/plugins/{{ cp_plugin_index }}"
+        value: "{{ plugin_name }}"
+      - op: remove
+        path: "/spec/plugins/{{ cp_plugin_index }}"
+  when: cp_plugin_index is defined
+
+- name: Forget the plugin index
+  ansible.builtin.set_fact:
+    cp_plugin_index: null
+  when: cp_plugin_index is defined

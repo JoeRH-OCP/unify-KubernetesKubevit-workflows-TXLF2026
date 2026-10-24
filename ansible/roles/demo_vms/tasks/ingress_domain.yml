@@ -1,0 +1,13 @@
+---
+# Sets demo_ingress_domain from ingress_domain or the cluster Ingress config.
+- name: Read cluster Ingress config
+  kubernetes.core.k8s_info:
+    api_version: config.openshift.io/v1
+    kind: Ingress
+    name: cluster
+  register: _ingress_cfg
+  when: not ingress_domain
+
+- name: Set demo_ingress_domain
+  ansible.builtin.set_fact:
+    demo_ingress_domain: "{{ ingress_domain or (_ingress_cfg.resources | first).spec.domain }}"

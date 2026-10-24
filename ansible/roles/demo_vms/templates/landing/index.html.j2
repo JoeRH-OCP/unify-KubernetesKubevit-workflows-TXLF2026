@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ event_name }} · vm-web</title>
+  <link rel="icon" type="image/png" href="about-logo.png">
+  <style>
+    :root {
+      --primary: {{ event_color_primary }};
+      --accent: {{ event_color_accent }};
+      --on-primary: {{ event_color_on_primary }};
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      font-family: "Red Hat Display", "Open Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: radial-gradient(circle at 15% 0%, #0b3aa0 0%, var(--primary) 50%, #00143f 100%);
+      color: var(--on-primary);
+      display: flex; flex-direction: column; align-items: center;
+      padding: 24px 16px 40px;
+    }
+    header { text-align: center; max-width: 960px; }
+    .badge {
+      width: min(220px, 50vw); height: auto; border-radius: 50%;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, .45); margin-top: 8px;
+    }
+    h1 { font-size: clamp(1.8rem, 5vw, 3.2rem); margin: 18px 0 6px; letter-spacing: .01em; }
+    .tagline { font-size: clamp(1.05rem, 2.6vw, 1.5rem); margin: 0; opacity: .92; }
+    .card {
+      margin-top: 28px; width: 100%; max-width: 720px;
+      background: rgba(255, 255, 255, .97); color: #1b1d21;
+      border-radius: 16px; border-top: 8px solid var(--accent);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, .35); padding: 24px clamp(16px, 4vw, 36px);
+      text-align: center;
+    }
+    .label { text-transform: uppercase; letter-spacing: .12em; font-size: .8rem; color: #6a6e73; margin: 0; }
+    .node {
+      font-family: "Red Hat Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: clamp(1.6rem, 6vw, 3rem); font-weight: 700; color: var(--primary);
+      margin: 8px 0 4px; word-break: break-all; transition: color .4s;
+    }
+    .node.changed { animation: flash 1.6s ease-out; }
+    @keyframes flash {
+      0% { color: var(--accent); transform: scale(1.08); }
+      100% { color: var(--primary); transform: scale(1); }
+    }
+    .status { display: inline-flex; align-items: center; gap: 8px; font-size: .95rem; color: #4d5258; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: #3e8635; }
+    .dot.warn { background: var(--accent); animation: pulse 1s infinite alternate; }
+    .dot.err { background: #c9190b; }
+    @keyframes pulse { from { opacity: 1; } to { opacity: .3; } }
+    .migration {
+      margin-top: 14px; padding: 10px 14px; border-radius: 10px;
+      background: #fff4ec; color: #8a3c00; font-weight: 600; display: none;
+    }
+    .history { list-style: none; padding: 0; margin: 18px 0 0; font-size: .9rem; color: #4d5258; }
+    .history li { padding: 4px 0; border-top: 1px solid #eee; }
+    .history time { color: #8a8d90; margin-right: 8px; font-family: ui-monospace, monospace; }
+    .facts { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 22px; margin-top: 16px; font-size: .9rem; color: #4d5258; }
+    .facts b { color: #1b1d21; }
+    footer { margin-top: 28px; text-align: center; font-size: .95rem; opacity: .9; }
+    footer a { color: var(--on-primary); font-weight: 700; text-decoration: none; border-bottom: 2px solid var(--accent); }
+    footer p { margin: 6px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <img class="badge" src="about-logo.png" alt="{{ event_name }}">
+    <h1>{{ event_name }}</h1>
+    <p class="tagline">{{ event_tagline }}</p>
+  </header>
+
+  <main class="card" aria-live="polite">
+    <p class="label">This page is served by the VM <b>vm-web</b>, now running on Kubernetes node</p>
+    <div id="node" class="node">…</div>
+    <div class="status"><span id="dot" class="dot warn"></span><span id="status">connecting…</span></div>
+    <div id="migration" class="migration"></div>
+    <div class="facts">
+      <span>Namespace: <b>{{ demo_namespace }}</b></span>
+      <span>KubeVirt: <b>{{ demo_kubevirt_version }}</b>{{ ' (OpenShift Virtualization)' if virt_mode | default('kubevirt') == 'cnv' else ' (upstream)' }}</span>
+      <span>Guest: <b>Fedora {{ fedora_release }}</b></span>
+      <span>Disk: <b>{{ storage_class }}</b> (Block, RWX)</span>
+    </div>
+    <ul id="history" class="history"></ul>
+  </main>
+
+  <footer>
+    <p><a href="{{ event_url }}">{{ banner_link_text }}</a> · {{ event_dates }}</p>
+{% if demo_repo_url %}
+    <p>Demo code: <a href="{{ demo_repo_url }}">{{ demo_repo_url | regex_replace('^https?://', '') }}</a></p>
+{% endif %}
+  </footer>
+
+  <script>
+    (function () {
+      var POLL_MS = {{ demo_landing_poll_ms }};
+      var nodeEl = document.getElementById("node");
+      var dotEl = document.getElementById("dot");
+      var statusEl = document.getElementById("status");
+      var migEl = document.getElementById("migration");
+      var histEl = document.getElementById("history");
+      var last = null;
+
+      function setStatus(cls, text) {
+        dotEl.className = "dot" + (cls ? " " + cls : "");
+        statusEl.textContent = text;
+      }
+
+      function addHistory(node) {
+        var li = document.createElement("li");
+        var t = document.createElement("time");
+        t.textContent = new Date().toLocaleTimeString();
+        li.appendChild(t);
+        li.appendChild(document.createTextNode(node));
+        histEl.insertBefore(li, histEl.firstChild);
+        while (histEl.children.length > 6) { histEl.removeChild(histEl.lastChild); }
+      }
+
+      function render(d) {
+        var node = d.node || "(not running)";
+        if (node !== last) {
+          nodeEl.textContent = node;
+          if (last !== null) {
+            nodeEl.classList.remove("changed");
+            void nodeEl.offsetWidth;
+            nodeEl.classList.add("changed");
+          }
+          addHistory(node);
+          last = node;
+        }
+        var m = d.migration;
+        if (m && !m.completed && !m.failed) {
+          migEl.style.display = "block";
+          migEl.textContent = "Live migration in progress: " + (m.source || "?") + " → " + (m.target || "?");
+          setStatus("warn", "migrating…");
+        } else {
+          migEl.style.display = "none";
+          setStatus(d.phase === "Running" ? "" : "warn", "VM phase: " + (d.phase || "unknown") + " · updated " + new Date().toLocaleTimeString());
+        }
+      }
+
+      function tick() {
+        fetch("/api/node?vm=vm-web", { cache: "no-store" })
+          .then(function (r) { return r.json(); })
+          .then(render)
+          .catch(function () { setStatus("err", "reconnecting…"); })
+          .then(function () { setTimeout(tick, POLL_MS); });
+      }
+      tick();
+    })();
+  </script>
+</body>
+</html>

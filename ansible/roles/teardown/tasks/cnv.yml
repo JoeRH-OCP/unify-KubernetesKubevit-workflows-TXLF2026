@@ -1,0 +1,53 @@
+---
+# Put back the HyperConverged fields and the StorageProfile spec that site.yml
+# changed in virt_mode=cnv (saved in reports/ on the first run).
+- name: Check the saved originals
+  ansible.builtin.stat:
+    path: "{{ reports_dir }}/{{ item }}"
+  loop: [hco-original.yaml, storageprofile-original.yaml]
+  register: td_cnv_backups
+
+- name: Restore HyperConverged cpuModel / workloads
+  when: td_cnv_backups.results[0].stat.exists
+  block:
+    - name: Load reports/hco-original.yaml
+      ansible.builtin.set_fact:
+        td_hco_orig: "{{ lookup('ansible.builtin.file', reports_dir ~ '/hco-original.yaml') | from_yaml }}"
+
+    # Merge patch: null removes a field that was not set before.
+    - name: Patch the HyperConverged CR back
+      kubernetes.core.k8s:
+        state: patched
+        api_version: hco.kubevirt.io/v1beta1
+        kind: HyperConverged
+        namespace: "{{ td_hco_orig.namespace }}"
+        name: "{{ td_hco_orig.name }}"
+        merge_type: merge
+        definition:
+          spec:
+            defaultCPUModel: "{{ td_hco_orig.defaultCPUModel }}"
+            workloads: "{{ td_hco_orig.workloads }}"
+
+- name: Restore the StorageProfile spec
+  when: td_cnv_backups.results[1].stat.exists
+  block:
+    - name: Load reports/storageprofile-original.yaml
+      ansible.builtin.set_fact:
+        td_sp_orig: "{{ lookup('ansible.builtin.file', reports_dir ~ '/storageprofile-original.yaml') | from_yaml }}"
+
+    - name: Replace the StorageProfile spec
+      kubernetes.core.k8s_json_patch:
+        api_version: cdi.kubevirt.io/v1beta1
+        kind: StorageProfile
+        name: "{{ td_sp_orig.name }}"
+        patch:
+          - op: add
+            path: /spec
+            value: "{{ td_sp_orig.spec }}"
+
+# So the next site.yml captures the cluster's state at that time.
+- name: Archive the saved originals
+  ansible.builtin.command:
+    cmd: mv "{{ reports_dir }}/{{ item }}" "{{ reports_dir }}/{{ item }}.restored-{{ now(utc=true, fmt='%Y%m%dT%H%M%SZ') }}"
+    removes: "{{ reports_dir }}/{{ item }}"
+  loop: [hco-original.yaml, storageprofile-original.yaml]

@@ -1,0 +1,20 @@
+---
+# Deletes the demo VMs, clones, snapshots and restores. Keeps golden-image,
+# KubeVirt, CDI, kubevirt-manager and the branding. Run it before the talk,
+# then demo.yml to recreate vm-web (and the rest) fresh.
+- name: TXLF 2026 | Reset the demo
+  hosts: localhost
+  gather_facts: false
+  environment:
+    K8S_AUTH_KUBECONFIG: "{{ kubeconfig_path }}"
+    KUBECONFIG: "{{ kubeconfig_path }}"
+  tasks:
+    - name: Delete demo VMs and clones (keep golden-image)
+      ansible.builtin.include_role:
+        name: demo_vms
+        tasks_from: reset.yml
+
+    - name: Status
+      ansible.builtin.include_role:
+        name: demo_vms
+        tasks_from: verify.yml

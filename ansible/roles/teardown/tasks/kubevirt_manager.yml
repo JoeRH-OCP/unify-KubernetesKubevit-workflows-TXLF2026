@@ -1,0 +1,19 @@
+---
+- name: Delete the kubevirt-manager namespace
+  kubernetes.core.k8s:
+    state: absent
+    api_version: v1
+    kind: Namespace
+    name: kubevirt-manager
+    wait: true
+    wait_timeout: "{{ teardown_wait_timeout }}"
+
+- name: Delete kubevirt-manager CRDs, RBAC and PriorityClasses
+  ansible.builtin.include_role:
+    name: kubevirt
+    tasks_from: apply_manifest.yml
+  vars:
+    manifest_state: absent
+    manifest_url: "{{ kubevirt_manager_manifests_url }}/{{ item }}"
+    manifest_file: "kubevirt-manager-{{ kubevirt_manager_version }}-{{ item }}"
+  loop: [pc.yaml, rbac.yaml, crd.yaml]

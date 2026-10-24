@@ -1,0 +1,71 @@
+---
+- name: Resolve the Ingress domain
+  ansible.builtin.include_tasks: ingress_domain.yml
+  when: demo_ingress_domain is not defined
+
+- name: Read KubeVirt, CDI and kubevirt-manager
+  kubernetes.core.k8s_info:
+    api_version: "{{ item.api_version }}"
+    kind: "{{ item.kind }}"
+    namespace: "{{ item.namespace | default(omit) }}"
+    name: "{{ item.name | default(omit) }}"
+  loop:
+    - { api_version: kubevirt.io/v1, kind: KubeVirt }
+    - { api_version: cdi.kubevirt.io/v1beta1, kind: CDI }
+    - { api_version: apps/v1, kind: Deployment, namespace: kubevirt-manager, name: kubevirt-manager }
+    - { api_version: cdi.kubevirt.io/v1beta1, kind: StorageProfile, name: "{{ storage_class }}" }
+    - { api_version: cdi.kubevirt.io/v1beta1, kind: DataVolume, namespace: "{{ demo_namespace }}", name: "{{ golden_image_name }}" }
+  loop_control:
+    label: "{{ item.kind }}/{{ item.name | default('*') }}"
+  register: verify_core
+
+- name: Read VMs and VMIs in {{ demo_namespace }}
+  kubernetes.core.k8s_info:
+    api_version: kubevirt.io/v1
+    kind: "{{ item }}"
+    namespace: "{{ demo_namespace }}"
+  loop: [VirtualMachine, VirtualMachineInstance]
+  register: verify_vms
+
+- name: Read Ingresses
+  kubernetes.core.k8s_info:
+    api_version: networking.k8s.io/v1
+    kind: Ingress
+    label_selectors:
+      - "app.kubernetes.io/part-of={{ event_slug }}"
+  register: verify_ingress
+
+- name: Build the status summary
+  ansible.builtin.set_fact:
+    verify_kv: "{{ verify_core.results[0].resources | first | default({}) }}"
+    verify_cdi: "{{ verify_core.results[1].resources | first | default({}) }}"
+    verify_kvm: "{{ verify_core.results[2].resources | first | default({}) }}"
+    verify_sp: "{{ verify_core.results[3].resources | first | default({}) }}"
+    verify_golden: "{{ verify_core.results[4].resources | first | default({}) }}"
+    verify_vmis: "{{ verify_vms.results[1].resources }}"
+
+- name: Status
+  ansible.builtin.debug:
+    msg: >-
+      {{
+        [
+          'Mode ............ virt_mode=' ~ (virt_mode | default('kubevirt')) ~ ' (' ~ ('upstream KubeVirt' if virt_mode | default('kubevirt') == 'kubevirt' else 'OpenShift Virtualization') ~ ')',
+          'KubeVirt ........ ' ~ (verify_kv.status.observedKubeVirtVersion | default('-')) ~ '  phase=' ~ (verify_kv.status.phase | default('NOT INSTALLED')) ~ '  ns=' ~ (verify_kv.metadata.namespace | default('-')),
+          'CDI ............. ' ~ (verify_cdi.status.observedVersion | default('-')) ~ '  phase=' ~ (verify_cdi.status.phase | default('NOT INSTALLED')),
+          'StorageProfile .. ' ~ storage_class ~ '  ' ~ ((verify_sp.status.claimPropertySets | default([{}]) | first).volumeMode | default('-')) ~ '/' ~ ((verify_sp.status.claimPropertySets | default([{}]) | first).accessModes | default(['-']) | join(',')) ~ '  clone=' ~ (verify_sp.status.cloneStrategy | default('-')),
+          'golden-image .... ' ~ (verify_golden.status.phase | default('missing')) ~ ' ' ~ (verify_golden.status.progress | default('')),
+          'kubevirt-manager  ' ~ ((verify_kvm.status.readyReplicas | default(0)) | string) ~ '/' ~ ((verify_kvm.spec.replicas | default(0)) | string) ~ ' ready',
+          '',
+          'VMs (' ~ demo_namespace ~ '):'
+        ]
+        + (verify_vms.results[0].resources | map(attribute='metadata.name') | map('regex_replace', '^(.*)$', '  \\1') | list
+           | zip(verify_vms.results[0].resources | map(attribute='status.printableStatus', default='?'))
+           | map('join', '  status=') | list)
+        + ['', 'Running VMIs and their nodes:']
+        + (verify_vmis | map(attribute='metadata.name') | map('regex_replace', '^(.*)$', '  \\1') | list
+           | zip(verify_vmis | map(attribute='status.nodeName', default='-'))
+           | map('join', '  node=') | list)
+        + ['', 'URLs:']
+        + (verify_ingress.resources | map(attribute='spec.rules') | flatten | map(attribute='host')
+           | unique | map('regex_replace', '^(.*)$', '  https://\\1') | list)
+      }}

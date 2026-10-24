@@ -1,0 +1,46 @@
+---
+- name: Replace any previous snapshot
+  kubernetes.core.k8s:
+    state: absent
+    api_version: snapshot.kubevirt.io/v1beta1
+    kind: VirtualMachineSnapshot
+    namespace: "{{ demo_namespace }}"
+    name: "{{ demo_snapshot_name }}"
+    wait: true
+
+- name: VirtualMachineSnapshot of vm-web (online, uses the guest agent to freeze filesystems)
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: snapshot.kubevirt.io/v1beta1
+      kind: VirtualMachineSnapshot
+      metadata:
+        name: "{{ demo_snapshot_name }}"
+        namespace: "{{ demo_namespace }}"
+        labels: "{{ event_labels }}"
+      spec:
+        source:
+          apiGroup: kubevirt.io
+          kind: VirtualMachine
+          name: vm-web
+    wait: true
+    wait_condition:
+      type: Ready
+      status: "True"
+    wait_timeout: 600
+
+- name: Snapshot result
+  kubernetes.core.k8s_info:
+    api_version: snapshot.kubevirt.io/v1beta1
+    kind: VirtualMachineSnapshot
+    namespace: "{{ demo_namespace }}"
+    name: "{{ demo_snapshot_name }}"
+  register: demo_snapshot
+
+- name: Show snapshot
+  ansible.builtin.debug:
+    msg: >-
+      {{ demo_snapshot_name }}: phase={{ demo_snapshot.resources[0].status.phase | default('n/a') }}
+      readyToUse={{ demo_snapshot.resources[0].status.readyToUse | default(false) }}
+      indications={{ demo_snapshot.resources[0].status.indications | default([]) }}
+  when: demo_snapshot.resources | length > 0

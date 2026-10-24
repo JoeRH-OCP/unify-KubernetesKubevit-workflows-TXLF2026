@@ -1,0 +1,43 @@
+---
+- name: Banner (ConsoleNotification)
+  kubernetes.core.k8s:
+    state: present
+    apply: true
+    definition:
+      apiVersion: console.openshift.io/v1
+      kind: ConsoleNotification
+      metadata:
+        name: "{{ console_notification_name }}"
+        labels: "{{ event_labels }}"
+      spec:
+        text: "{{ banner_text }}"
+        location: BannerTop
+        color: "{{ event_color_on_primary }}"
+        backgroundColor: "{{ event_color_primary }}"
+        link:
+          href: "{{ banner_link }}"
+          text: "{{ banner_link_text }}"
+
+- name: Application menu links (ConsoleLink)
+  kubernetes.core.k8s:
+    state: present
+    apply: true
+    definition:
+      apiVersion: console.openshift.io/v1
+      kind: ConsoleLink
+      metadata:
+        name: "{{ event_slug }}-{{ item.id }}"
+        labels: "{{ event_labels }}"
+      spec:
+        href: "{{ item.href }}"
+        text: "{{ item.text }}"
+        location: ApplicationMenu
+        applicationMenu:
+          section: "{{ event_name }}"
+          imageURL: "{{ console_link_image_url }}"
+  loop:
+    - { id: event, text: "Event website", href: "{{ event_url }}" }
+    - { id: kubevirt-manager, text: "KubeVirt Manager", href: "https://kubevirt-manager.{{ demo_ingress_domain }}" }
+    - { id: landing, text: "Demo landing (vm-web)", href: "https://vm-web.{{ demo_ingress_domain }}" }
+  loop_control:
+    label: "{{ item.text }}"

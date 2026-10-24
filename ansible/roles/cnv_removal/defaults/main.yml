@@ -1,0 +1,28 @@
+---
+# Must be set to true on the command line: -e confirm_cnv_removal=true
+confirm_cnv_removal: false
+cnv_namespace: openshift-cnv
+cnv_os_images_namespace: openshift-virtualization-os-images
+cnv_delete_os_images_namespace: true
+cnv_wait_timeout: 1200
+# CRD groups removed after CNV is gone: kubevirt.io and every *.kubevirt.io group
+# (cdi, hco, ssp, networkaddonsoperator.network, snapshot, export, instancetype,
+# pool, migrations, clone, aaq, hostpathprovisioner, ...).
+cnv_crd_group_regex: '(^|\.)kubevirt\.io$'
+# Never touched, even if a future CRD group would match the regex.
+cnv_protected_crd_groups:
+  - nmstate.io
+  - ocs.openshift.io
+  - odf.openshift.io
+  - ceph.rook.io
+  - csiaddons.openshift.io
+  - noobaa.io
+  - objectbucket.io
+  - snapshot.storage.k8s.io
+  - k8s.cni.cncf.io
+
+# MTV (Migration Toolkit for Virtualization) depends on OpenShift Virtualization.
+# With virt_mode=kubevirt it is removed first, only with -e confirm_mtv_removal=true.
+confirm_mtv_removal: false
+mtv_crd_group_regex: '(^|\.)forklift\.konveyor\.io$'
+mtv_console_plugin: forklift-console-plugin

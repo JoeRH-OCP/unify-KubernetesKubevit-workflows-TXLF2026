@@ -1,0 +1,82 @@
+---
+- name: Secondary network is disabled
+  ansible.builtin.debug:
+    msg: "enable_secondary_net is false: skipping the Linux bridge and NetworkAttachmentDefinition."
+  when: not enable_secondary_net | bool
+
+- name: Linux bridge and NetworkAttachmentDefinition
+  when: enable_secondary_net | bool
+  block:
+    - name: Require secondary_nic
+      ansible.builtin.assert:
+        that: secondary_nic | length > 0
+        fail_msg: "Set secondary_nic in infra.yml (see reports/preflight.md for free NICs)."
+        quiet: true
+
+    - name: NodeNetworkConfigurationPolicy for the Linux bridge
+      kubernetes.core.k8s:
+        state: present
+        apply: true
+        definition:
+          apiVersion: nmstate.io/v1
+          kind: NodeNetworkConfigurationPolicy
+          metadata:
+            name: "{{ demo_nncp_name }}"
+            labels: "{{ event_labels }}"
+          spec:
+            nodeSelector: "{{ demo_nncp_node_selector }}"
+            desiredState:
+              interfaces:
+                - name: "{{ secondary_bridge_name }}"
+                  description: "{{ event_name }} demo bridge on {{ secondary_nic }}"
+                  type: linux-bridge
+                  state: up
+                  ipv4:
+                    enabled: false
+                  ipv6:
+                    enabled: false
+                  bridge:
+                    options:
+                      stp:
+                        enabled: false
+                    port:
+                      - name: "{{ secondary_nic }}"
+
+    - name: Wait for the NNCP to be Available
+      kubernetes.core.k8s_info:
+        api_version: nmstate.io/v1
+        kind: NodeNetworkConfigurationPolicy
+        name: "{{ demo_nncp_name }}"
+        wait: true
+        wait_condition:
+          type: Available
+          status: "True"
+        wait_timeout: 600
+      when: not ansible_check_mode
+
+    - name: Demo namespace
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: "{{ demo_namespace }}"
+            labels: "{{ event_labels }}"
+
+    # Standard `bridge` CNI plugin shipped with Multus; no KubeVirt-specific CNI.
+    - name: NetworkAttachmentDefinition {{ secondary_nad_name }}
+      kubernetes.core.k8s:
+        state: present
+        apply: true
+        definition:
+          apiVersion: k8s.cni.cncf.io/v1
+          kind: NetworkAttachmentDefinition
+          metadata:
+            name: "{{ secondary_nad_name }}"
+            namespace: "{{ demo_namespace }}"
+            labels: "{{ event_labels }}"
+          spec:
+            config: >-
+              {{ {'cniVersion': '0.3.1', 'name': secondary_nad_name, 'type': 'bridge',
+                  'bridge': secondary_bridge_name, 'ipam': {}} | to_json }}

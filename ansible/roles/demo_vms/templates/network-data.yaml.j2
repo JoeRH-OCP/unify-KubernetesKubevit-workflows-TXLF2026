@@ -1,0 +1,20 @@
+version: 2
+ethernets:
+  primary:
+    match:
+      macaddress: "{{ demo_vm_net_primary_mac }}"
+    dhcp4: true
+    dhcp4-overrides:
+      route-metric: 100
+  demolan:
+    match:
+      macaddress: "{{ demo_vm_net_mac }}"
+    set-name: demolan0
+{% if secondary_vm_ip_cidr %}
+    addresses:
+      - {{ secondary_vm_ip_cidr }}
+{% else %}
+    dhcp4: true
+    dhcp4-overrides:
+      route-metric: 200
+{% endif %}

@@ -1,0 +1,7 @@
+---
+kubevirt_manager_namespace: kubevirt-manager
+kubevirt_manager_image: "{{ kubevirt_manager_image_registry }}/{{ kubevirt_manager_image_repo }}:{{ kubevirt_manager_version }}"
+kubevirt_manager_host: "kubevirt-manager.{{ demo_ingress_domain }}"
+kubevirt_manager_title: "{{ event_name }} · KubeVirt Manager"
+# Generated once and kept in reports/ when kubevirt_manager_auth_password is empty.
+kubevirt_manager_password_file: "{{ reports_dir }}/kubevirt-manager-password"

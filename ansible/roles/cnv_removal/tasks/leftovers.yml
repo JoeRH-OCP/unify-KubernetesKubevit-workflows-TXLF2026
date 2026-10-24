@@ -1,0 +1,44 @@
+---
+- name: Orphan KubeVirt/CNV CRDs
+  ansible.builtin.include_tasks: crd_group.yml
+  vars:
+    crd_group_regex: "{{ cnv_crd_group_regex }}"
+    crd_protected_groups: "{{ cnv_protected_crd_groups }}"
+
+- name: APIServices and webhooks that point to the CNV namespace
+  ansible.builtin.include_tasks: namespace_refs.yml
+  vars:
+    refs_namespace: "{{ cnv_namespace }}"
+
+- name: List SecurityContextConstraints
+  kubernetes.core.k8s_info:
+    api_version: security.openshift.io/v1
+    kind: SecurityContextConstraints
+  register: cnv_sccs
+
+# CNV's SCCs (kubevirt-handler, kubevirt-controller, containerized-data-importer, ...)
+# would get in the way of the SCCs upstream virt-operator/cdi-operator create.
+- name: Select SCCs that only grant access to CNV service accounts
+  ansible.builtin.set_fact:
+    cnv_stale_sccs: >-
+      {%- set out = [] -%}
+      {%- for scc in cnv_sccs.resources -%}
+      {%-   set users = scc.users | default([], true) -%}
+      {%-   if users and (users | reject('match', '^system:serviceaccount:' ~ cnv_namespace ~ ':') | list | length == 0) -%}
+      {%-     set _ = out.append(scc.metadata.name) -%}
+      {%-   endif -%}
+      {%- endfor -%}
+      {{ out }}
+
+- name: Delete SCCs that only grant access to CNV service accounts
+  kubernetes.core.k8s:
+    state: absent
+    api_version: security.openshift.io/v1
+    kind: SecurityContextConstraints
+    name: "{{ item }}"
+  loop: "{{ cnv_stale_sccs }}"
+
+- name: Remove kubevirt-plugin from the console
+  ansible.builtin.include_tasks: console_plugin.yml
+  vars:
+    plugin_name: kubevirt-plugin

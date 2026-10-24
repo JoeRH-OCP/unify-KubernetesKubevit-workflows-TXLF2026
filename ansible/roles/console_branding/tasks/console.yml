@@ -1,0 +1,76 @@
+---
+- name: Read logo files
+  ansible.builtin.slurp:
+    src: "{{ playbook_dir }}/files/branding/{{ item }}"
+  loop: [logo.png, footer-logo-280.png, favicon.png]
+  register: cb_logos
+
+- name: Logos ConfigMap in openshift-config
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: "{{ console_logos_configmap }}"
+        namespace: openshift-config
+        labels: "{{ event_labels }}"
+      binaryData: "{{ cb_logos.results | items2dict(key_name='item', value_name='content') }}"
+
+- name: Build the logos list (4.19+ API)
+  ansible.builtin.set_fact:
+    cb_logos_spec:
+      - type: Masthead
+        themes:
+          - mode: Light
+            source:
+              from: ConfigMap
+              configMap: { name: "{{ console_logos_configmap }}", key: logo.png }
+          - mode: Dark
+            source:
+              from: ConfigMap
+              configMap: { name: "{{ console_logos_configmap }}", key: footer-logo-280.png }
+      - type: Favicon
+        themes:
+          - mode: Light
+            source:
+              from: ConfigMap
+              configMap: { name: "{{ console_logos_configmap }}", key: favicon.png }
+          - mode: Dark
+            source:
+              from: ConfigMap
+              configMap: { name: "{{ console_logos_configmap }}", key: favicon.png }
+
+- name: Patch the Console CR (logos API, OpenShift 4.19+)
+  kubernetes.core.k8s:
+    state: patched
+    api_version: operator.openshift.io/v1
+    kind: Console
+    name: cluster
+    merge_type: merge
+    definition:
+      spec:
+        customization:
+          customProductName: "{{ console_product_name }}"
+          brand: "{{ console_brand }}"
+          # logos and customLogoFile can't be set together (CEL rule).
+          customLogoFile: null
+          logos: "{{ cb_logos_spec }}"
+  when: console_logos_api | bool
+
+- name: Patch the Console CR (customLogoFile fallback, OpenShift 4.18)
+  kubernetes.core.k8s:
+    state: patched
+    api_version: operator.openshift.io/v1
+    kind: Console
+    name: cluster
+    merge_type: merge
+    definition:
+      spec:
+        customization:
+          customProductName: "{{ console_product_name }}"
+          brand: "{{ console_brand }}"
+          customLogoFile:
+            name: "{{ console_logos_configmap }}"
+            key: logo.png
+  when: not console_logos_api | bool

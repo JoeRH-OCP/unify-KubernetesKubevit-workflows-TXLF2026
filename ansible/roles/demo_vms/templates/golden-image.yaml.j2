@@ -1,0 +1,23 @@
+apiVersion: cdi.kubevirt.io/v1beta1
+kind: DataVolume
+metadata:
+  name: {{ golden_image_name }}
+  namespace: {{ demo_namespace }}
+  labels:
+    app.kubernetes.io/component: golden-image
+    {{ event_labels | to_nice_yaml(indent=2) | indent(4) }}
+  annotations:
+    # Start the import right away instead of waiting for a VM to use the PVC.
+    cdi.kubevirt.io/storage.bind.immediate.requested: "true"
+spec:
+  source:
+    http:
+      url: {{ fedora_qcow2_url }}
+  storage:
+    storageClassName: {{ storage_class }}
+    volumeMode: Block
+    accessModes:
+      - ReadWriteMany
+    resources:
+      requests:
+        storage: {{ vm_disk_size }}

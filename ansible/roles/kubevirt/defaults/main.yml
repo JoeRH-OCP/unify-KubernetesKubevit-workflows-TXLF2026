@@ -1,0 +1,18 @@
+---
+kubevirt_namespace: kubevirt
+kubevirt_wait_timeout: 900
+kubevirt_field_manager: "{{ event_slug }}"
+# Labels added to the kubevirt namespace. virt-handler/virt-launcher need privileged PSA;
+# label sync is turned off so OpenShift doesn't overwrite them.
+kubevirt_namespace_labels:
+  pod-security.kubernetes.io/enforce: privileged
+  pod-security.kubernetes.io/audit: privileged
+  pod-security.kubernetes.io/warn: privileged
+  security.openshift.io/scc.podSecurityLabelSync: "false"
+kubevirt_migrations:
+  parallelMigrationsPerCluster: 5
+  parallelOutboundMigrationsPerNode: 2
+  completionTimeoutPerGiB: 150
+  progressTimeout: 150
+  allowAutoConverge: true
+  allowPostCopy: false

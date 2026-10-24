@@ -1,0 +1,64 @@
+/* {{ event_name }} branding for kubevirt-manager v{{ kubevirt_manager_version }} */
+:root {
+  --txlf-primary: {{ event_color_primary }};
+  --txlf-accent: {{ event_color_accent }};
+  --txlf-on-primary: {{ event_color_on_primary }};
+}
+
+/* Sidebar header: event logo on white, orange underline */
+.main-sidebar .brand-link {
+  background: #ffffff !important;
+  border-bottom: 3px solid var(--txlf-accent) !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 57px;
+  overflow: hidden;
+}
+.main-sidebar .brand-link .brand-image {
+  width: auto !important;
+  height: 40px !important;
+  max-height: 40px !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+  float: none !important;
+  margin: 0 !important;
+}
+.main-sidebar .brand-link .brand-text { display: none; }
+
+/* Sidebar in event navy, active item in event orange */
+.main-sidebar, .main-sidebar .sidebar { background-color: var(--txlf-primary) !important; }
+.nav-pills .nav-link.active,
+.nav-pills .show > .nav-link,
+.sidebar-dark-primary .nav-sidebar > .nav-item > .nav-link.active {
+  background-color: var(--txlf-accent) !important;
+  color: var(--txlf-on-primary) !important;
+}
+
+/* Top bar */
+.main-header.navbar { border-bottom: 3px solid var(--txlf-accent) !important; }
+.main-header #nav-title::before {
+  content: "{{ event_name }}  ·  ";
+  color: var(--txlf-primary);
+  font-weight: 700;
+}
+
+/* Buttons and links */
+.btn-primary, .bg-primary, .card-primary:not(.card-outline) > .card-header {
+  background-color: var(--txlf-primary) !important;
+  border-color: var(--txlf-primary) !important;
+}
+.card-primary.card-outline { border-top-color: var(--txlf-accent) !important; }
+a { color: var(--txlf-primary); }
+a:hover { color: var(--txlf-accent); }
+
+/* Footer: event tagline */
+.main-footer { border-top: 3px solid var(--txlf-accent) !important; }
+.main-footer::before {
+  content: "{{ event_tagline }}";
+  float: right;
+  margin-left: 1rem;
+  color: var(--txlf-primary);
+  font-weight: 600;
+}

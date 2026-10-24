@@ -1,0 +1,65 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: vm-web
+  namespace: {{ demo_namespace }}
+  labels:
+    app.kubernetes.io/component: vm-web
+    {{ event_labels | to_nice_yaml(indent=2) | indent(4) }}
+spec:
+  runStrategy: Always
+  dataVolumeTemplates:
+    - metadata:
+        name: vm-web-rootdisk
+        labels:
+          {{ event_labels | to_nice_yaml(indent=2) | indent(10) }}
+      spec:
+        # Smart clone: the StorageProfile uses cloneStrategy=snapshot.
+        source:
+          pvc:
+            namespace: {{ demo_namespace }}
+            name: {{ golden_image_name }}
+        storage:
+          storageClassName: {{ storage_class }}
+          volumeMode: Block
+          accessModes:
+            - ReadWriteMany
+          resources:
+            requests:
+              storage: {{ vm_disk_size }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: vm-web
+        {{ event_labels | to_nice_yaml(indent=2) | indent(8) }}
+    spec:
+      domain:
+        cpu:
+          cores: {{ vm_cpu_cores }}
+        memory:
+          guest: {{ vm_memory }}
+        devices:
+          disks:
+            - name: rootdisk
+              disk:
+                bus: virtio
+            - name: cloudinit
+              disk:
+                bus: virtio
+          interfaces:
+            - name: default
+              masquerade: {}
+          rng: {}
+      networks:
+        - name: default
+          pod: {}
+      evictionStrategy: {{ 'LiveMigrate' if enable_live_migration | bool else 'None' }}
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - name: rootdisk
+          dataVolume:
+            name: vm-web-rootdisk
+        - name: cloudinit
+          cloudInitNoCloud:
+            secretRef:
+              name: vm-web-cloudinit

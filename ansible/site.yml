@@ -1,0 +1,72 @@
+---
+# Everything: preflight -> MTV/CNV removal (virt_mode=kubevirt, if present) ->
+# KubeVirt -> CDI -> kubevirt-manager -> console branding -> network -> demo VMs -> verify.
+#   ansible-navigator run site.yml -e confirm_cnv_removal=true [-e confirm_mtv_removal=true]
+#   ansible-navigator run site.yml -e virt_mode=cnv           # keep OpenShift Virtualization
+- name: TXLF 2026 | Upstream KubeVirt demo
+  hosts: localhost
+  gather_facts: false
+  environment:
+    K8S_AUTH_KUBECONFIG: "{{ kubeconfig_path }}"
+    KUBECONFIG: "{{ kubeconfig_path }}"
+  tasks:
+    - name: Preflight
+      ansible.builtin.import_role:
+        name: preflight
+      tags: [preflight]
+
+    - name: Stop on preflight blockers
+      ansible.builtin.assert:
+        that: preflight_blockers | length == 0 or preflight_ignore_blockers | bool
+        fail_msg: "Preflight found blockers (see reports/preflight.md): {{ preflight_blockers }}"
+        quiet: true
+      tags: [preflight]
+
+    - name: Disable live migration with fewer than 2 VM-eligible workers
+      ansible.builtin.set_fact:
+        enable_live_migration: false
+      when:
+        - preflight_done | default(false)
+        - preflight_eligible_workers | length < 2
+      tags: [preflight]
+
+    - name: Remove MTV and OpenShift Virtualization (virt_mode=kubevirt, only if installed)
+      ansible.builtin.import_role:
+        name: cnv_removal
+      tags: [cnv_removal]
+
+    - name: KubeVirt (upstream install, or OpenShift Virtualization settings in cnv mode)
+      ansible.builtin.import_role:
+        name: kubevirt
+      tags: [kubevirt]
+
+    - name: CDI (upstream install, or only the StorageProfile in cnv mode)
+      ansible.builtin.import_role:
+        name: cdi
+      tags: [cdi]
+
+    - name: The kubevirt-manager UI
+      ansible.builtin.import_role:
+        name: kubevirt_manager
+      tags: [kubevirt_manager]
+
+    - name: Console and login branding
+      ansible.builtin.import_role:
+        name: console_branding
+      tags: [console_branding]
+
+    - name: Optional secondary network
+      ansible.builtin.import_role:
+        name: demo_network
+      tags: [demo_network, network]
+
+    - name: Demo scenario
+      ansible.builtin.import_role:
+        name: demo_vms
+      tags: [demo_vms]
+
+    - name: Final verification
+      ansible.builtin.include_role:
+        name: demo_vms
+        tasks_from: verify.yml
+      tags: [verify, always]

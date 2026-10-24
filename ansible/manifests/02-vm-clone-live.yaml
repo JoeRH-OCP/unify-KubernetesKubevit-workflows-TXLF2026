@@ -1,0 +1,76 @@
+# A VM whose root disk is cloned from golden-image. The StorageProfile uses
+# cloneStrategy=snapshot, so CDI takes a CSI snapshot of golden-image and
+# restores it: seconds, no data copy.
+#   kubectl apply -f manifests/02-vm-clone-live.yaml
+#   kubectl -n demo-vms get dv vm-clone-live-rootdisk -w
+---
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: vm-clone-live
+  namespace: demo-vms
+  labels:
+    app.kubernetes.io/part-of: txlf-2026
+    app.kubernetes.io/component: clone
+spec:
+  runStrategy: Always
+  dataVolumeTemplates:
+    - metadata:
+        name: vm-clone-live-rootdisk
+        labels:
+          app.kubernetes.io/part-of: txlf-2026
+      spec:
+        source:
+          pvc:
+            namespace: demo-vms
+            name: golden-image
+        storage:
+          storageClassName: ocs-external-storagecluster-ceph-rbd
+          volumeMode: Block
+          accessModes:
+            - ReadWriteMany
+          resources:
+            requests:
+              storage: 10Gi
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: txlf-2026
+        app.kubernetes.io/component: clone
+    spec:
+      domain:
+        cpu:
+          cores: 1
+        memory:
+          guest: 2Gi
+        devices:
+          disks:
+            - name: rootdisk
+              disk:
+                bus: virtio
+            - name: cloudinit
+              disk:
+                bus: virtio
+          interfaces:
+            - name: default
+              masquerade: {}
+      networks:
+        - name: default
+          pod: {}
+      evictionStrategy: LiveMigrate
+      accessCredentials:
+        - sshPublicKey:
+            source:
+              secret:
+                secretName: demo-ssh-key
+            propagationMethod:
+              noCloud: {}
+      volumes:
+        - name: rootdisk
+          dataVolume:
+            name: vm-clone-live-rootdisk
+        - name: cloudinit
+          cloudInitNoCloud:
+            userData: |
+              #cloud-config
+              hostname: vm-clone-live

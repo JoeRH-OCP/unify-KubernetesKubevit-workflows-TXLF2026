@@ -1,0 +1,23 @@
+{% set page_title = 'Log in' %}
+{% include 'oauth/_head.html.j2' %}
+{% raw %}
+      {{ if .Error }}
+        <div class="error">{{ .Error }}</div>
+        <!-- Error code: {{ .ErrorCode }} -->
+      {{ end }}
+
+      <!-- Identity provider name: {{ .ProviderName }} -->
+      <form action="{{ .Action }}" method="POST">
+        <input type="hidden" name="{{ .Names.Then }}" value="{{ .Values.Then }}">
+        <input type="hidden" name="{{ .Names.CSRF }}" value="{{ .Values.CSRF }}">
+
+        <label for="inputUsername">Username</label>
+        <input type="text" id="inputUsername" autofocus="autofocus" name="{{ .Names.Username }}" value="{{ .Values.Username }}">
+
+        <label for="inputPassword">Password</label>
+        <input type="password" id="inputPassword" name="{{ .Names.Password }}" value="">
+
+        <button type="submit">Log in</button>
+      </form>
+{% endraw %}
+{% include 'oauth/_foot.html.j2' %}

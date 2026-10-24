@@ -1,0 +1,11 @@
+---
+galaxy_info:
+  role_name: preflight
+  author: txlf-2026-demo
+  description: Read-only checks of the OpenShift cluster before installing upstream KubeVirt.
+  license: Apache-2.0
+  min_ansible_version: "2.16"
+  platforms:
+    - name: GenericLinux
+      versions: [all]
+dependencies: []

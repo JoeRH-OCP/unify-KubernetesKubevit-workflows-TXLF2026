@@ -1,0 +1,18 @@
+---
+- name: Delete the CDI CR (operator removes its components)
+  kubernetes.core.k8s:
+    state: absent
+    api_version: cdi.kubevirt.io/v1beta1
+    kind: CDI
+    name: cdi
+    wait: true
+    wait_timeout: "{{ teardown_wait_timeout }}"
+
+- name: Delete the CDI operator
+  ansible.builtin.include_role:
+    name: kubevirt
+    tasks_from: apply_manifest.yml
+  vars:
+    manifest_state: absent
+    manifest_url: "{{ cdi_release_url }}/cdi-operator.yaml"
+    manifest_file: "cdi-operator-{{ cdi_version }}.yaml"

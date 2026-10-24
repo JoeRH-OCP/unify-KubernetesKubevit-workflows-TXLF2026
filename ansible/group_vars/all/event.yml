@@ -1,0 +1,38 @@
+---
+# Event branding. Everything visible to the audience is driven from this file.
+
+event_name: "Texas Linux Fest 2026"
+event_slug: "txlf-2026"
+event_tagline: "Upstream KubeVirt: VMs the Kubernetes way"
+event_url: "https://2026.texaslinuxfest.org/"
+event_dates: "November 6-7, 2026 - Austin, TX"
+
+# OpenShift console banner (ConsoleNotification) and links.
+banner_text: "Welcome to Texas Linux Fest 2026 — live demo: upstream KubeVirt on Kubernetes"
+banner_link: "https://2026.texaslinuxfest.org/"
+banner_link_text: "2026.texaslinuxfest.org"
+console_product_name: "TXLF 2026 Demo Cluster"
+# Allowed values (4.21): okd, ocp, online, dedicated, azure, OpenShift, OKD, OCP,
+# Online, Dedicated, Azure, ROSA. Lowercase values are "legacy" but still valid.
+console_brand: "okd"
+
+# Palette sampled from static/images/logo.png (navy) and the site theme
+# ($primary-color in eventre-hugo/_variables.scss, orange).
+event_color_primary: "#002678"
+event_color_accent: "#FF6600"
+event_color_on_primary: "#FFFFFF"
+
+# Link to the demo repository shown on the landing page. Empty = hidden.
+demo_repo_url: ""
+
+# MOTD: figlet ASCII art + event name + tagline + hostname/IP (filled by cloud-init).
+motd_figlet_text: "TXLF"
+motd_figlet_font: "standard"
+
+# Upstream source of the logos in files/branding/ (see scripts/fetch-branding.sh).
+branding_source_repo: "https://github.com/TXLF/2026website"
+branding_source_sha: "8f5c478b37fa52d12763284f228af2583b09c91f"
+
+# Label added to every object this repo creates.
+event_labels:
+  app.kubernetes.io/part-of: "{{ event_slug }}"

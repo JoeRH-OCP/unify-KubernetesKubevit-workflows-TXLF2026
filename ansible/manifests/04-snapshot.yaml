@@ -1,0 +1,16 @@
+# Online snapshot of vm-web (CSI VolumeSnapshot of its RBD disk + VM spec).
+#   kubectl apply -f manifests/04-snapshot.yaml
+#   kubectl -n demo-vms get vmsnapshot vm-web-snap-live -w   # wait for READYTOUSE=true
+---
+apiVersion: snapshot.kubevirt.io/v1beta1
+kind: VirtualMachineSnapshot
+metadata:
+  name: vm-web-snap-live
+  namespace: demo-vms
+  labels:
+    app.kubernetes.io/part-of: txlf-2026
+spec:
+  source:
+    apiGroup: kubevirt.io
+    kind: VirtualMachine
+    name: vm-web

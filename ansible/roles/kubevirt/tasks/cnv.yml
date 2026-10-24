@@ -1,0 +1,84 @@
+---
+# virt_mode=cnv: OpenShift Virtualization stays. HCO owns the KubeVirt CR and
+# reverts direct edits, so cpuModel and nodePlacement go through the
+# HyperConverged CR, and only when they are set in infra.yml. The original values
+# are saved to reports/hco-original.yaml; teardown.yml puts them back.
+- name: Find the HyperConverged CR
+  kubernetes.core.k8s_info:
+    api_version: hco.kubevirt.io/v1beta1
+    kind: HyperConverged
+  register: kv_hco
+
+- name: Require OpenShift Virtualization
+  ansible.builtin.assert:
+    that: kv_hco.resources | length > 0
+    fail_msg: "virt_mode=cnv but no HyperConverged CR was found. Install OpenShift Virtualization or use virt_mode=kubevirt."
+    quiet: true
+
+- name: HyperConverged reference
+  ansible.builtin.set_fact:
+    kv_hco_obj: "{{ kv_hco.resources | first }}"
+
+- name: Ensure reports directory exists
+  ansible.builtin.file:
+    path: "{{ reports_dir }}"
+    state: directory
+    mode: "0755"
+  check_mode: false
+
+- name: Save the original HyperConverged settings we may change
+  ansible.builtin.copy:
+    dest: "{{ reports_dir }}/hco-original.yaml"
+    force: false
+    mode: "0644"
+    content: |
+      # Original HyperConverged values saved by {{ event_slug }} on {{ now(utc=true, fmt='%Y-%m-%d %H:%M UTC') }}.
+      {{ {'namespace': kv_hco_obj.metadata.namespace, 'name': kv_hco_obj.metadata.name,
+          'defaultCPUModel': kv_hco_obj.spec.defaultCPUModel | default(None),
+          'workloads': kv_hco_obj.spec.workloads | default(None)} | to_nice_yaml(indent=2) }}
+  check_mode: false
+
+- name: Build the HyperConverged patch
+  ansible.builtin.set_fact:
+    kv_hco_patch: >-
+      {{ ({'defaultCPUModel': kubevirt_cpu_model} if kubevirt_cpu_model else {})
+         | combine({'workloads': {'nodePlacement': kubevirt_node_placement}} if kubevirt_node_placement else {}) }}
+
+- name: Apply cpuModel / nodePlacement to the HyperConverged CR
+  kubernetes.core.k8s:
+    state: patched
+    api_version: hco.kubevirt.io/v1beta1
+    kind: HyperConverged
+    namespace: "{{ kv_hco_obj.metadata.namespace }}"
+    name: "{{ kv_hco_obj.metadata.name }}"
+    merge_type: merge
+    definition:
+      spec: "{{ kv_hco_patch }}"
+  when: kv_hco_patch | length > 0
+
+- name: Wait until HyperConverged is Available
+  kubernetes.core.k8s_info:
+    api_version: hco.kubevirt.io/v1beta1
+    kind: HyperConverged
+    namespace: "{{ kv_hco_obj.metadata.namespace }}"
+    name: "{{ kv_hco_obj.metadata.name }}"
+    wait: true
+    wait_condition:
+      type: Available
+      status: "True"
+    wait_timeout: "{{ kubevirt_wait_timeout }}"
+  when: not ansible_check_mode
+
+- name: Read the KubeVirt CR managed by HCO
+  kubernetes.core.k8s_info:
+    api_version: kubevirt.io/v1
+    kind: KubeVirt
+    namespace: "{{ kv_hco_obj.metadata.namespace }}"
+  register: kubevirt_status
+
+- name: Show OpenShift Virtualization status
+  ansible.builtin.debug:
+    msg: >-
+      OpenShift Virtualization (KubeVirt {{ (kubevirt_status.resources | first | default({})).status.observedKubeVirtVersion | default('?') }})
+      phase={{ (kubevirt_status.resources | first | default({})).status.phase | default('?') }};
+      HCO changes: {{ kv_hco_patch if kv_hco_patch else 'none (kubevirt_cpu_model and kubevirt_node_placement are empty)' }}

@@ -1,0 +1,6 @@
+# Python libraries needed by kubernetes.core / kubevirt.core and the roles.
+kubernetes>=28.1.0
+jsonpatch
+PyYAML>=6.0
+requests-oauthlib
+passlib          # password_hash() for kubevirt-manager basic auth (Python >= 3.13 has no crypt)

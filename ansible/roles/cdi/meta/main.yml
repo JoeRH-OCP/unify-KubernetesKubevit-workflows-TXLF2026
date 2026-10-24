@@ -1,0 +1,11 @@
+---
+galaxy_info:
+  role_name: cdi
+  author: txlf-2026-demo
+  description: Install upstream CDI and tune the StorageProfile for ODF RBD Block/RWX.
+  license: Apache-2.0
+  min_ansible_version: "2.16"
+  platforms:
+    - name: GenericLinux
+      versions: [all]
+dependencies: []

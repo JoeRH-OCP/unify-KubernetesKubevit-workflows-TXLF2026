@@ -1,0 +1,11 @@
+Texas Linux Fest 2026 branding
+==============================
+
+The images in files/branding/ are the Texas Linux Fest 2026 logos, taken from
+https://github.com/TXLF/2026website at commit 8f5c478b37fa52d12763284f228af2583b09c91f
+(see files/branding/SOURCE.md). That repository has no license file, and the
+logos are the event's trademark. They are included here only for the TXLF 2026
+demo, with permission of the Texas Linux Fest organizers, who provided them
+for this demo.
+
+Everything else in this folder is the demo code (Ansible, YAML, docs).

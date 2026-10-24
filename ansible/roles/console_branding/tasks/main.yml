@@ -1,0 +1,20 @@
+---
+# The console and OAuth are configured through OpenShift-specific CRs
+# (operator.openshift.io Console, config.openshift.io OAuth, console.openshift.io
+# ConsoleNotification/ConsoleLink). There is no upstream equivalent; we still use
+# kubernetes.core.k8s for them, so no `oc` or redhat.openshift is needed.
+- name: Resolve the Ingress domain
+  ansible.builtin.include_tasks: "{{ role_path }}/../demo_vms/tasks/ingress_domain.yml"
+  when: demo_ingress_domain is not defined
+
+- name: Back up the original Console and OAuth settings
+  ansible.builtin.import_tasks: backup.yml
+
+- name: Console logos, product name and brand
+  ansible.builtin.import_tasks: console.yml
+
+- name: Banner and links
+  ansible.builtin.import_tasks: notifications.yml
+
+- name: OAuth login templates
+  ansible.builtin.import_tasks: oauth.yml

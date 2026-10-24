@@ -1,0 +1,44 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: vm-quick
+  namespace: {{ demo_namespace }}
+  labels:
+    app.kubernetes.io/component: vm-quick
+    {{ event_labels | to_nice_yaml(indent=2) | indent(4) }}
+spec:
+  runStrategy: Always
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: vm-quick
+        {{ event_labels | to_nice_yaml(indent=2) | indent(8) }}
+    spec:
+      domain:
+        cpu:
+          cores: {{ vm_cpu_cores }}
+        memory:
+          guest: {{ vm_memory }}
+        devices:
+          disks:
+            - name: containerdisk
+              disk:
+                bus: virtio
+            - name: cloudinit
+              disk:
+                bus: virtio
+          interfaces:
+            - name: default
+              masquerade: {}
+          rng: {}
+      networks:
+        - name: default
+          pod: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - name: containerdisk
+          containerDisk:
+            image: {{ demo_containerdisk_image }}
+        - name: cloudinit
+          cloudInitNoCloud:
+            userData: {{ lookup('ansible.builtin.template', 'cloud-init.yaml.j2', template_vars={'ci_hostname': 'vm-quick', 'ci_web': false}) | to_json }}

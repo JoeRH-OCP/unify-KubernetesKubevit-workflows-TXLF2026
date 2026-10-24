@@ -1,0 +1,21 @@
+apiVersion: cdi.kubevirt.io/v1beta1
+kind: CDI
+metadata:
+  name: cdi
+  labels:
+    {{ event_labels | to_nice_yaml(indent=2) | indent(4) }}
+spec:
+  imagePullPolicy: IfNotPresent
+  # Keep DataVolumes after they succeed (golden-image must stay visible in the demo).
+  uninstallStrategy: BlockUninstallIfWorkloadsExist
+  config:
+    dataVolumeTTLSeconds: -1
+    featureGates: {{ cdi_feature_gates | to_json }}
+{% if cdi_import_proxy_spec %}
+    importProxy:
+      {{ cdi_import_proxy_spec | to_nice_yaml(indent=2) | indent(6) }}
+{% endif %}
+{% if kubevirt_node_placement %}
+  workload:
+    {{ kubevirt_node_placement | to_nice_yaml(indent=2) | indent(4) }}
+{% endif %}

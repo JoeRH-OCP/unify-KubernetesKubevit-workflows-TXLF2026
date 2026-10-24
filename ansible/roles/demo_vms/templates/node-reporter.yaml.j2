@@ -1,0 +1,129 @@
+# Small stdlib-only Python service: reads status.nodeName of a VMI and returns
+# it as JSON, so the landing page can show where vm-web runs right now.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: node-reporter
+  namespace: {{ demo_namespace }}
+  labels:
+    app: node-reporter
+    {{ event_labels | to_nice_yaml(indent=2) | indent(4) }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: node-reporter
+  namespace: {{ demo_namespace }}
+  labels:
+    app: node-reporter
+    {{ event_labels | to_nice_yaml(indent=2) | indent(4) }}
+rules:
+  - apiGroups: ["kubevirt.io"]
+    resources: ["virtualmachineinstances"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: node-reporter
+  namespace: {{ demo_namespace }}
+  labels:
+    app: node-reporter
+    {{ event_labels | to_nice_yaml(indent=2) | indent(4) }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: node-reporter
+subjects:
+  - kind: ServiceAccount
+    name: node-reporter
+    namespace: {{ demo_namespace }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: node-reporter
+  namespace: {{ demo_namespace }}
+  labels:
+    app: node-reporter
+    {{ event_labels | to_nice_yaml(indent=2) | indent(4) }}
+data:
+  node_reporter.py: |
+    {{ lookup('ansible.builtin.file', 'node_reporter.py') | indent(4) }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: node-reporter
+  namespace: {{ demo_namespace }}
+  labels:
+    app: node-reporter
+    {{ event_labels | to_nice_yaml(indent=2) | indent(4) }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: node-reporter
+  template:
+    metadata:
+      labels:
+        app: node-reporter
+        {{ event_labels | to_nice_yaml(indent=2) | indent(8) }}
+      annotations:
+        {{ event_slug }}/script-checksum: "{{ lookup('ansible.builtin.file', 'node_reporter.py') | hash('sha256') }}"
+    spec:
+      serviceAccountName: node-reporter
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: node-reporter
+          image: {{ node_reporter_image }}
+          imagePullPolicy: IfNotPresent
+          command: ["python3", "/app/node_reporter.py"]
+          env:
+            - name: ALLOWED_VMS
+              value: "vm-web,vm-quick,vm-net"
+            - name: PORT
+              value: "8080"
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: app
+              mountPath: /app
+      volumes:
+        - name: app
+          configMap:
+            name: node-reporter
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: node-reporter
+  namespace: {{ demo_namespace }}
+  labels:
+    app: node-reporter
+    {{ event_labels | to_nice_yaml(indent=2) | indent(4) }}
+spec:
+  selector:
+    app: node-reporter
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080

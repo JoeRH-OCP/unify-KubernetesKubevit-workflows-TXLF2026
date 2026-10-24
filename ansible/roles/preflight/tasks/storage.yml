@@ -1,0 +1,76 @@
+---
+- name: List StorageClasses
+  kubernetes.core.k8s_info:
+    api_version: storage.k8s.io/v1
+    kind: StorageClass
+  register: pf_sc_all
+
+- name: List VolumeSnapshotClasses
+  kubernetes.core.k8s_info:
+    api_version: snapshot.storage.k8s.io/v1
+    kind: VolumeSnapshotClass
+  register: pf_vsc_all
+
+- name: Read CephCluster
+  kubernetes.core.k8s_info:
+    api_version: ceph.rook.io/v1
+    kind: CephCluster
+    namespace: "{{ odf_namespace }}"
+  register: pf_ceph
+
+- name: Extract storage facts
+  ansible.builtin.set_fact:
+    pf_sc: "{{ pf_sc_all.resources | selectattr('metadata.name', 'equalto', storage_class) | first | default({}) }}"
+    pf_vsc: "{{ pf_vsc_all.resources | selectattr('metadata.name', 'equalto', snapshot_class) | first | default({}) }}"
+    pf_sc_names: "{{ pf_sc_all.resources | map(attribute='metadata.name') | list }}"
+    pf_vsc_names: "{{ pf_vsc_all.resources | map(attribute='metadata.name') | list }}"
+    pf_rbd_scs: "{{ pf_sc_all.resources | selectattr('provisioner', 'search', 'rbd.csi.ceph.com') | map(attribute='metadata.name') | list }}"
+    pf_rbd_vscs: "{{ pf_vsc_all.resources | selectattr('driver', 'search', 'rbd.csi.ceph.com') | map(attribute='metadata.name') | list }}"
+    pf_ceph_health: "{{ (pf_ceph.resources | first | default({})).status.ceph.health | default('UNKNOWN') }}"
+    pf_ceph_avail: "{{ (pf_ceph.resources | first | default({})).status.ceph.capacity.bytesAvailable | default(0) | int }}"
+    pf_ceph_total: "{{ (pf_ceph.resources | first | default({})).status.ceph.capacity.bytesTotal | default(0) | int }}"
+
+# Standard ODF names first (internal or external mode), then any other RBD class.
+- name: Pick the StorageClass / VolumeSnapshotClass to propose
+  ansible.builtin.set_fact:
+    pf_proposed_sc: >-
+      {{ storage_class if pf_sc | length > 0 else
+         ((pf_rbd_scs | select('match', '^ocs(-external)?-storagecluster-ceph-rbd$') | list) + pf_rbd_scs) | first | default('') }}
+    pf_proposed_vsc: >-
+      {{ snapshot_class if pf_vsc | length > 0 else
+         ((pf_rbd_vscs | select('match', '^ocs(-external)?-storagecluster-rbdplugin-snapclass$') | list) + pf_rbd_vscs) | first | default('') }}
+
+- name: Flag missing StorageClass
+  ansible.builtin.set_fact:
+    pf_blockers: "{{ pf_blockers + ['StorageClass ' ~ storage_class ~ ' not found. RBD classes in the cluster: ' ~ (pf_rbd_scs | join(', ') or 'none') ~ (('. Set storage_class: ' ~ pf_proposed_sc) if pf_proposed_sc else '')] }}"
+  when: pf_sc | length == 0
+
+- name: Flag StorageClass that is not Ceph RBD
+  ansible.builtin.set_fact:
+    pf_warnings: "{{ pf_warnings + ['StorageClass ' ~ storage_class ~ ' uses provisioner ' ~ pf_sc.provisioner ~ ' (expected *.rbd.csi.ceph.com for Block/RWX)'] }}"
+  when:
+    - pf_sc | length > 0
+    - "'rbd.csi.ceph.com' not in pf_sc.provisioner"
+
+- name: Flag missing VolumeSnapshotClass
+  ansible.builtin.set_fact:
+    pf_blockers: "{{ pf_blockers + ['VolumeSnapshotClass ' ~ snapshot_class ~ ' not found. Available: ' ~ (pf_vsc_names | join(', ') or 'none') ~ (('. Set snapshot_class: ' ~ pf_proposed_vsc) if pf_proposed_vsc else '')] }}"
+  when: pf_vsc | length == 0
+
+- name: Flag VolumeSnapshotClass driver mismatch
+  ansible.builtin.set_fact:
+    pf_warnings: "{{ pf_warnings + ['VolumeSnapshotClass driver ' ~ pf_vsc.driver ~ ' differs from StorageClass provisioner ' ~ pf_sc.provisioner] }}"
+  when:
+    - pf_sc | length > 0
+    - pf_vsc | length > 0
+    - pf_vsc.driver != pf_sc.provisioner
+
+- name: Flag Ceph health
+  ansible.builtin.set_fact:
+    pf_blockers: "{{ pf_blockers + (['Ceph health is ' ~ pf_ceph_health ~ ' (expected HEALTH_OK)'] if pf_ceph_health not in ['HEALTH_OK', 'HEALTH_WARN'] else []) }}"
+    pf_warnings: "{{ pf_warnings + (['Ceph health is HEALTH_WARN: check `ceph health detail` before the demo'] if pf_ceph_health == 'HEALTH_WARN' else []) }}"
+
+- name: Flag low Ceph capacity
+  ansible.builtin.set_fact:
+    pf_blockers: "{{ pf_blockers + ['Ceph has ' ~ (pf_ceph_avail | human_bytes) ~ ' free; at least ' ~ preflight_min_free_gib ~ ' GiB is required'] }}"
+  when: (pf_ceph_avail | int) < (preflight_min_free_gib | int) * 1073741824

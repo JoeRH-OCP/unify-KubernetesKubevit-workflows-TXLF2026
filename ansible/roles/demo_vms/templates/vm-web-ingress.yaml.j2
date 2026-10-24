@@ -1,0 +1,54 @@
+# The Service follows vm-web's virt-launcher pod (label vm.kubevirt.io/name),
+# so it keeps working after a live migration.
+apiVersion: v1
+kind: Service
+metadata:
+  name: vm-web
+  namespace: {{ demo_namespace }}
+  labels:
+    app.kubernetes.io/component: vm-web
+    {{ event_labels | to_nice_yaml(indent=2) | indent(4) }}
+spec:
+  selector:
+    vm.kubevirt.io/name: vm-web
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vm-web
+  namespace: {{ demo_namespace }}
+  labels:
+    app.kubernetes.io/component: vm-web
+    {{ event_labels | to_nice_yaml(indent=2) | indent(4) }}
+  annotations:
+    route.openshift.io/termination: edge
+spec:
+  ingressClassName: {{ ingress_class_name }}
+  tls:
+    - hosts:
+        - {{ demo_web_host }}
+{% if ingress_tls_secret %}
+      secretName: {{ ingress_tls_secret }}
+{% endif %}
+  rules:
+    - host: {{ demo_web_host }}
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: node-reporter
+                port:
+                  number: 8080
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: vm-web
+                port:
+                  number: 80

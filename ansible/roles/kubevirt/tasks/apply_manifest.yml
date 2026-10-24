@@ -1,0 +1,58 @@
+---
+# Download an upstream multi-document manifest (pinned URL) and apply it with
+# server-side apply, adding the event labels to every object.
+# Vars: manifest_url, manifest_file, manifest_state (present|absent),
+#       manifest_namespace_labels (extra labels for Namespace objects),
+#       manifest_skip_kinds (list of kinds to ignore).
+- name: Ensure cache directory exists
+  ansible.builtin.file:
+    path: "{{ cache_dir }}"
+    state: directory
+    mode: "0755"
+  check_mode: false
+
+- name: Download {{ manifest_file }}
+  ansible.builtin.get_url:
+    url: "{{ manifest_url }}"
+    dest: "{{ cache_dir }}/{{ manifest_file }}"
+    mode: "0644"
+    force: false
+  check_mode: false
+
+- name: Parse {{ manifest_file }}
+  ansible.builtin.set_fact:
+    _manifest_docs: >-
+      {{ lookup('ansible.builtin.file', cache_dir ~ '/' ~ manifest_file) | from_yaml_all
+         | select | rejectattr('kind', 'in', manifest_skip_kinds | default([])) | list }}
+
+- name: Apply {{ manifest_file }}
+  kubernetes.core.k8s:
+    state: present
+    apply: true
+    server_side_apply:
+      field_manager: "{{ event_slug }}"
+      force_conflicts: true
+    definition: >-
+      {{ item | combine({'metadata': {'labels':
+           (item.metadata.labels | default({}, true))
+           | combine(event_labels)
+           | combine(manifest_namespace_labels | default({}) if item.kind == 'Namespace' else {})}},
+         recursive=True) }}
+  loop: "{{ _manifest_docs }}"
+  loop_control:
+    label: "{{ item.kind }}/{{ item.metadata.name }}"
+  when: manifest_state | default('present') == 'present'
+
+- name: Delete objects from {{ manifest_file }}
+  kubernetes.core.k8s:
+    state: absent
+    api_version: "{{ item.apiVersion }}"
+    kind: "{{ item.kind }}"
+    name: "{{ item.metadata.name }}"
+    namespace: "{{ item.metadata.namespace | default(omit) }}"
+    wait: true
+    wait_timeout: 600
+  loop: "{{ _manifest_docs | reverse | list }}"
+  loop_control:
+    label: "{{ item.kind }}/{{ item.metadata.name }}"
+  when: manifest_state | default('present') == 'absent'

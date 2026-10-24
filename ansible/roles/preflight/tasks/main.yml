@@ -1,0 +1,40 @@
+---
+# Read-only checks. The only cluster write is the optional node probe
+# (preflight_node_probe: true), which creates and deletes a temp namespace.
+- name: Reset preflight results
+  ansible.builtin.set_fact:
+    pf_blockers: []
+    pf_warnings: []
+    pf_probe: {}
+  tags: [always]
+
+- name: Check virt_mode
+  ansible.builtin.assert:
+    that: virt_mode | default('kubevirt') in ['kubevirt', 'cnv']
+    fail_msg: "virt_mode must be 'kubevirt' (upstream) or 'cnv' (OpenShift Virtualization), not '{{ virt_mode }}'."
+    quiet: true
+  tags: [always]
+
+- name: OpenShift / Kubernetes version
+  ansible.builtin.import_tasks: ocp.yml
+
+- name: Node topology, /dev/kvm, CPU model and free resources
+  ansible.builtin.import_tasks: topology.yml
+
+- name: ODF storage
+  ansible.builtin.import_tasks: storage.yml
+
+- name: OpenShift Virtualization / MTV / upstream KubeVirt detection
+  ansible.builtin.import_tasks: cnv_mtv.yml
+
+- name: NMState and free NICs
+  ansible.builtin.import_tasks: nmstate.yml
+
+- name: Proxy, DNS and Ingress certificate
+  ansible.builtin.import_tasks: network.yml
+
+- name: Registry and internet access from the control host
+  ansible.builtin.import_tasks: registries.yml
+
+- name: Proposals, report and summary
+  ansible.builtin.import_tasks: summary.yml

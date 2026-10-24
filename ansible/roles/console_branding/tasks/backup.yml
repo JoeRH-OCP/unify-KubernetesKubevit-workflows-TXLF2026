@@ -1,0 +1,45 @@
+---
+- name: Read Console operator config
+  kubernetes.core.k8s_info:
+    api_version: operator.openshift.io/v1
+    kind: Console
+    name: cluster
+  register: cb_console
+
+- name: Read OAuth config
+  kubernetes.core.k8s_info:
+    api_version: config.openshift.io/v1
+    kind: OAuth
+    name: cluster
+  register: cb_oauth
+
+- name: Ensure reports directory exists
+  ansible.builtin.file:
+    path: "{{ reports_dir }}"
+    state: directory
+    mode: "0755"
+  check_mode: false
+
+# force: false = written only the first time, so later runs never overwrite the
+# original values with our own branding. teardown.yml restores from these files.
+- name: Save original Console customization to {{ console_backup_file }}
+  ansible.builtin.copy:
+    dest: "{{ console_backup_file }}"
+    force: false
+    mode: "0644"
+    content: |
+      # Original spec.customization of consoles.operator.openshift.io/cluster
+      # saved by {{ event_slug }} on {{ now(utc=true, fmt='%Y-%m-%d %H:%M UTC') }}.
+      {{ {'customization': cb_console.resources[0].spec.customization | default(None)} | to_nice_yaml(indent=2) }}
+  check_mode: false
+
+- name: Save original OAuth templates to {{ oauth_backup_file }}
+  ansible.builtin.copy:
+    dest: "{{ oauth_backup_file }}"
+    force: false
+    mode: "0644"
+    content: |
+      # Original spec.templates of oauths.config.openshift.io/cluster
+      # saved by {{ event_slug }} on {{ now(utc=true, fmt='%Y-%m-%d %H:%M UTC') }}.
+      {{ {'templates': cb_oauth.resources[0].spec.templates | default(None)} | to_nice_yaml(indent=2) }}
+  check_mode: false

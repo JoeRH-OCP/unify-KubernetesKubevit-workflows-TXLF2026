@@ -1,0 +1,56 @@
+---
+- name: Read the landing logo
+  ansible.builtin.slurp:
+    src: "{{ playbook_dir }}/files/branding/about-logo.png"
+  register: demo_about_logo
+
+- name: Cloud-init Secret for vm-web (nginx + landing page)
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      type: Opaque
+      metadata:
+        name: vm-web-cloudinit
+        namespace: "{{ demo_namespace }}"
+        labels: "{{ event_labels | combine({'app.kubernetes.io/component': 'vm-web'}) }}"
+      data:
+        userdata: "{{ lookup('ansible.builtin.template', 'cloud-init.yaml.j2', template_vars={'ci_hostname': 'vm-web', 'ci_web': true}) | b64encode }}"
+
+- name: VirtualMachine vm-web
+  kubernetes.core.k8s:
+    state: present
+    apply: true
+    definition: "{{ lookup('ansible.builtin.template', 'vm-web.yaml.j2') | from_yaml }}"
+
+- name: Node reporter (tells the landing page which node runs vm-web)
+  kubernetes.core.k8s:
+    state: present
+    apply: true
+    definition: "{{ item }}"
+  loop: "{{ lookup('ansible.builtin.template', 'node-reporter.yaml.j2') | from_yaml_all | list }}"
+  loop_control:
+    label: "{{ item.kind }}/{{ item.metadata.name }}"
+
+- name: Service and Ingress for the landing page
+  kubernetes.core.k8s:
+    state: present
+    apply: true
+    definition: "{{ item }}"
+  loop: "{{ lookup('ansible.builtin.template', 'vm-web-ingress.yaml.j2') | from_yaml_all | list }}"
+  loop_control:
+    label: "{{ item.kind }}/{{ item.metadata.name }}"
+
+- name: Wait for vm-web to be Ready
+  kubernetes.core.k8s_info:
+    api_version: kubevirt.io/v1
+    kind: VirtualMachine
+    namespace: "{{ demo_namespace }}"
+    name: vm-web
+    wait: true
+    wait_condition:
+      type: Ready
+      status: "True"
+    wait_timeout: 900
+  when: not ansible_check_mode

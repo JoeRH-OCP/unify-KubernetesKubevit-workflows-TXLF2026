@@ -1,0 +1,103 @@
+---
+# Cluster / infrastructure settings. Run preflight.yml first: reports/preflight.md
+# proposes values for the fields marked "(preflight)".
+
+# OpenShift minor version. Must match the cluster and exist in compat_matrix (versions.yml).
+ocp_version: "4.21"
+
+# Virtualization layer (can be set per cluster in clusters.vault.yml `vars`):
+#   kubevirt  upstream KubeVirt + CDI. Removes OpenShift Virtualization first
+#             (-e confirm_cnv_removal=true) and MTV if present (-e confirm_mtv_removal=true).
+#   cnv       keep OpenShift Virtualization; cpuModel/nodePlacement go through the
+#             HyperConverged CR. Nothing is uninstalled.
+virt_mode: kubevirt
+
+# Set by scripts/run-clusters.sh (one run per cluster). Empty = single-cluster mode.
+cluster_name: ""
+cluster_dir: "{{ playbook_dir }}/clusters/{{ cluster_name }}"
+
+# kubeconfig used by every module.
+#   multi-cluster: clusters/<name>/kubeconfig (written by cluster-login.yml)
+#   single cluster: KUBECONFIG env var, else ~/.kube/config
+kubeconfig_path: >-
+  {{ (cluster_dir ~ '/kubeconfig') if cluster_name
+     else (lookup('env', 'KUBECONFIG') | default('~/.kube/config', true) | expanduser) }}
+
+# Local folders (relative to this ansible/ folder). Reports are per cluster in
+# multi-cluster mode, so backups and passwords never mix between clusters.
+reports_dir: "{{ (cluster_dir ~ '/reports') if cluster_name else (playbook_dir ~ '/reports') }}"
+cache_dir: "{{ playbook_dir }}/.cache"
+
+# --- Storage (ODF) ---
+# ODF in external mode (Red Hat Demo Platform clusters). For internal-mode ODF use
+# ocs-storagecluster-ceph-rbd and ocs-storagecluster-rbdplugin-snapclass.
+storage_class: "ocs-external-storagecluster-ceph-rbd"
+snapshot_class: "ocs-external-storagecluster-rbdplugin-snapclass"
+odf_namespace: "openshift-storage"
+preflight_min_free_gib: 50
+
+# --- KubeVirt placement (preflight) ---
+# Passed as-is to KubeVirt spec.workloads.nodePlacement and CDI spec.workload.
+# Example:
+#   kubevirt_node_placement:
+#     nodeSelector:
+#       node-role.kubernetes.io/worker: ""
+kubevirt_node_placement: {}
+# "" = KubeVirt default (host-model). Use a named model (e.g. "Icelake-Server-v2")
+# when workers have different CPUs so live migration works in every direction.
+kubevirt_cpu_model: ""
+# Set to false automatically when fewer than 2 workers can run VMs.
+enable_live_migration: true
+
+# --- Preflight behaviour ---
+# Exclude ODF storage nodes from the list of VM-eligible workers.
+preflight_exclude_odf_nodes: true
+# If node labels can't tell us /dev/kvm and the CPU model, run a short-lived
+# privileged pod on each worker (temp namespace, deleted afterwards).
+# false = strictly read-only.
+preflight_node_probe: false
+# Set to true to let site.yml continue even if preflight found blockers.
+preflight_ignore_blockers: false
+
+# --- Network ---
+# Free NIC on the workers for the optional Linux bridge (preflight).
+secondary_nic: ""
+enable_secondary_net: false
+secondary_bridge_name: "br-txlf"
+secondary_nad_name: "demo-lan"
+# CIDR for the second NIC of vm-net (e.g. "192.168.50.10/24"). Empty = DHCP.
+secondary_vm_ip_cidr: ""
+
+# --- Ingress ---
+# Empty = read from ingresses.config.openshift.io/cluster (spec.domain).
+ingress_domain: ""
+ingress_class_name: "openshift-default"
+# Optional TLS secret (in each namespace) for the Ingress objects. Empty = router default cert.
+ingress_tls_secret: ""
+
+# --- Registries / mirrors ---
+# Registry for the kubevirt-manager image (Docker Hub). Point to a mirror if you hit rate limits.
+kubevirt_manager_image_registry: "docker.io"
+kubevirt_manager_image_repo: "kubevirtmanager/kubevirt-manager"
+# Registry for the Fedora containerDisk.
+containerdisk_registry: "quay.io"
+containerdisk_repo: "containerdisks/fedora"
+
+# kubevirt-manager basic auth. Empty password = no auth (the UI has cluster-wide VM
+# admin rights, so set this, ideally from Ansible Vault).
+kubevirt_manager_auth_user: "admin"
+kubevirt_manager_auth_password: ""
+
+# --- Demo ---
+demo_namespace: "demo-vms"
+clone_count: 3
+vm_user: "txlf"
+vm_ssh_pubkey_file: "~/.ssh/id_ed25519.pub"
+# Optional password for `virtctl console` logins. Empty = SSH key only.
+vm_password: ""
+# Proxy for dnf inside the guests (vm-web installs nginx). Empty = none.
+vm_http_proxy: ""
+vm_cpu_cores: 1
+vm_memory: "2Gi"
+vm_disk_size: "10Gi"
+golden_image_name: "golden-image"

@@ -1,0 +1,42 @@
+---
+- name: Read branding images
+  ansible.builtin.slurp:
+    src: "{{ playbook_dir }}/files/branding/{{ item }}"
+  loop: [logo.png, favicon.png]
+  register: kvm_images
+
+- name: Branding assets ConfigMap (logo, favicon, CSS)
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: kubevirt-manager-branding
+        namespace: "{{ kubevirt_manager_namespace }}"
+        labels: "{{ event_labels | combine({'app': 'kubevirt-manager'}) }}"
+      binaryData: "{{ kvm_images.results | items2dict(key_name='item', value_name='content') }}"
+      data:
+        txlf.css: "{{ lookup('ansible.builtin.template', 'txlf.css.j2') }}"
+
+- name: Nginx default.conf ConfigMap
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: kubevirt-manager-nginx
+        namespace: "{{ kubevirt_manager_namespace }}"
+        labels: "{{ event_labels | combine({'app': 'kubevirt-manager'}) }}"
+      data:
+        default.conf: "{{ lookup('ansible.builtin.template', 'default.conf.j2') }}"
+
+- name: Checksum of the config (rolls the Deployment when it changes)
+  ansible.builtin.set_fact:
+    kvm_config_checksum: >-
+      {{ (lookup('ansible.builtin.template', 'txlf.css.j2')
+          ~ lookup('ansible.builtin.template', 'default.conf.j2')
+          ~ (kvm_images.results | map(attribute='content') | join)
+          ~ kvm_password) | hash('sha256') }}
+  no_log: true

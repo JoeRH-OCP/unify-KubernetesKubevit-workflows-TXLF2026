@@ -1,0 +1,72 @@
+---
+# CDI creates one StorageProfile per StorageClass. For openshift-storage.rbd.csi.ceph.com
+# it fills Block/RWX by itself; we pin it anyway and switch cloneStrategy to snapshot.
+- name: Wait for StorageProfile {{ storage_class }}
+  kubernetes.core.k8s_info:
+    api_version: cdi.kubevirt.io/v1beta1
+    kind: StorageProfile
+    name: "{{ storage_class }}"
+  register: cdi_sp
+  until: cdi_sp.resources | length > 0
+  retries: 30
+  delay: 5
+
+# In cnv mode the StorageProfile belongs to OpenShift Virtualization's CDI:
+# save its spec once so teardown.yml can put it back.
+- name: Save the original StorageProfile spec (cnv mode)
+  when: virt_mode | default('kubevirt') == 'cnv'
+  block:
+    - name: Ensure reports directory exists
+      ansible.builtin.file:
+        path: "{{ reports_dir }}"
+        state: directory
+        mode: "0755"
+      check_mode: false
+
+    - name: Write reports/storageprofile-original.yaml
+      ansible.builtin.copy:
+        dest: "{{ reports_dir }}/storageprofile-original.yaml"
+        force: false
+        mode: "0644"
+        content: |
+          # Original spec of StorageProfile {{ storage_class }} saved by {{ event_slug }}.
+          {{ {'name': storage_class, 'spec': cdi_sp.resources[0].spec | default({})} | to_nice_yaml(indent=2) }}
+      check_mode: false
+
+- name: Pin Block/RWX, snapshot clone and the snapshot class
+  kubernetes.core.k8s:
+    state: patched
+    api_version: cdi.kubevirt.io/v1beta1
+    kind: StorageProfile
+    name: "{{ storage_class }}"
+    merge_type: merge
+    definition:
+      metadata:
+        labels: "{{ event_labels }}"
+      spec:
+        claimPropertySets:
+          - accessModes: [ReadWriteMany]
+            volumeMode: Block
+        cloneStrategy: "{{ cdi_clone_strategy }}"
+        snapshotClass: "{{ snapshot_class }}"
+
+- name: Wait until the StorageProfile status reflects Block/RWX + snapshot clone
+  kubernetes.core.k8s_info:
+    api_version: cdi.kubevirt.io/v1beta1
+    kind: StorageProfile
+    name: "{{ storage_class }}"
+  register: cdi_sp
+  until:
+    - cdi_sp.resources[0].status.cloneStrategy | default('') == cdi_clone_strategy
+    - (cdi_sp.resources[0].status.claimPropertySets | default([]) | first | default({})).volumeMode | default('') == 'Block'
+    - "'ReadWriteMany' in ((cdi_sp.resources[0].status.claimPropertySets | default([]) | first | default({})).accessModes | default([]))"
+  retries: 30
+  delay: 5
+  when: not ansible_check_mode
+
+- name: Show StorageProfile
+  ansible.builtin.debug:
+    msg:
+      claimPropertySets: "{{ cdi_sp.resources[0].status.claimPropertySets | default('n/a') }}"
+      cloneStrategy: "{{ cdi_sp.resources[0].status.cloneStrategy | default('n/a') }}"
+      snapshotClass: "{{ cdi_sp.resources[0].status.snapshotClass | default('n/a') }}"

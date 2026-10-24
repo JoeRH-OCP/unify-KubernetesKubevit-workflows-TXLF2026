@@ -1,0 +1,48 @@
+---
+# Pinned upstream versions. Verified on 2026-10-23.
+#
+# KubeVirt and CDI are picked by OpenShift minor version (ocp_version in infra.yml).
+# Sources:
+#   - https://github.com/kubevirt/sig-release/blob/main/releases/k8s-support-matrix.md
+#   - CDI has no formal matrix; versions below match its CI lanes (cluster-up/cluster/k8s-*).
+# Feature gates: Snapshot is Beta (enabled by default) in both versions; we list it
+# explicitly so the intent is visible. LiveMigration is GA (no gate).
+compat_matrix:
+  "4.21":
+    k8s: "1.34"
+    kubevirt: "v1.9.1"
+    cdi: "v1.66.1"
+    feature_gates: ["Snapshot"]
+    console_logos_api: true      # spec.customization.logos exists since 4.19
+  "4.18":
+    k8s: "1.31"                  # EOL upstream for KubeVirt 1.6: works, out of upstream support
+    kubevirt: "v1.6.6"
+    cdi: "v1.63.1"
+    feature_gates: ["Snapshot"]
+    console_logos_api: false     # falls back to the deprecated customLogoFile
+
+# Override any of these with -e to force a version.
+kubevirt_version: "{{ compat_matrix[ocp_version].kubevirt }}"
+cdi_version: "{{ compat_matrix[ocp_version].cdi }}"
+kubevirt_feature_gates: "{{ compat_matrix[ocp_version].feature_gates }}"
+console_logos_api: "{{ compat_matrix[ocp_version].console_logos_api }}"
+
+kubevirt_release_url: "https://github.com/kubevirt/kubevirt/releases/download/{{ kubevirt_version }}"
+cdi_release_url: "https://github.com/kubevirt/containerized-data-importer/releases/download/{{ cdi_version }}"
+
+# kubevirt-manager (https://github.com/kubevirt-manager/kubevirt-manager). amd64 only.
+kubevirt_manager_version: "1.5.4"
+kubevirt_manager_manifests_url: "https://raw.githubusercontent.com/kubevirt-manager/kubevirt-manager/v{{ kubevirt_manager_version }}/kubernetes"
+
+# Guest images.
+fedora_release: "44"
+fedora_build: "1.7"
+fedora_qcow2_url: "https://download.fedoraproject.org/pub/fedora/linux/releases/{{ fedora_release }}/Cloud/x86_64/images/Fedora-Cloud-Base-Generic-{{ fedora_release }}-{{ fedora_build }}.x86_64.qcow2"
+fedora_containerdisk_tag: "{{ fedora_release }}-{{ fedora_build }}"
+
+# Helper images (quay.io, to avoid Docker Hub rate limits).
+node_reporter_image: "quay.io/sclorg/python-312-c9s:latest"
+preflight_probe_image: "quay.io/fedora/fedora-minimal:44"
+
+# Ansible collections are pinned in requirements.yml:
+#   kubernetes.core 6.6.0, kubevirt.core 2.3.0

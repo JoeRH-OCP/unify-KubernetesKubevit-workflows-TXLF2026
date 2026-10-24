@@ -1,0 +1,57 @@
+---
+# Order: demo VMs -> network -> kubevirt-manager -> CDI -> KubeVirt -> branding.
+# virt_mode=cnv: CDI and KubeVirt belong to OpenShift Virtualization and stay;
+# only the HyperConverged and StorageProfile changes are reverted.
+# It does NOT touch ODF, NMState (the operator) or anything not created by this repo.
+- name: Require explicit confirmation
+  ansible.builtin.assert:
+    that: confirm_teardown | bool
+    fail_msg: >-
+      teardown removes the demo, kubevirt-manager,
+      {{ 'CDI, KubeVirt' if virt_mode | default('kubevirt') == 'kubevirt' else 'the OpenShift Virtualization tweaks' }}
+      and the branding. Re-run with -e confirm_teardown=true.
+    quiet: true
+  tags: [always]
+
+- name: Demo VMs and namespace
+  ansible.builtin.import_tasks: demo.yml
+  tags: [demo]
+
+- name: Secondary network (NNCP / NAD)
+  ansible.builtin.include_role:
+    name: demo_network
+    tasks_from: remove.yml
+  tags: [network]
+
+- name: Demo namespace
+  kubernetes.core.k8s:
+    state: absent
+    api_version: v1
+    kind: Namespace
+    name: "{{ demo_namespace }}"
+    wait: true
+    wait_timeout: "{{ teardown_wait_timeout }}"
+  tags: [demo]
+
+- name: Remove kubevirt-manager
+  ansible.builtin.import_tasks: kubevirt_manager.yml
+  tags: [kubevirt_manager]
+
+- name: CDI (virt_mode=kubevirt)
+  ansible.builtin.import_tasks: cdi.yml
+  tags: [cdi]
+  when: virt_mode | default('kubevirt') == 'kubevirt'
+
+- name: KubeVirt (virt_mode=kubevirt)
+  ansible.builtin.import_tasks: kubevirt.yml
+  tags: [kubevirt]
+  when: virt_mode | default('kubevirt') == 'kubevirt'
+
+- name: Revert the OpenShift Virtualization tweaks (virt_mode=cnv)
+  ansible.builtin.import_tasks: cnv.yml
+  tags: [kubevirt, cdi]
+  when: virt_mode | default('kubevirt') == 'cnv'
+
+- name: Revert the console and OAuth branding
+  ansible.builtin.import_tasks: branding.yml
+  tags: [branding]

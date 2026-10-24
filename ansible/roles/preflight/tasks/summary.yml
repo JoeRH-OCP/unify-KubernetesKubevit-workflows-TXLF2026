@@ -1,0 +1,55 @@
+---
+- name: Compute proposals for infra.yml
+  ansible.builtin.set_fact:
+    pf_proposed_placement: "{{ pf_eligible | preflight_node_placement(pf_workers) }}"
+    pf_proposed_cpu: "{{ pf_eligible | preflight_cpu_model(preflight_cpu_model_preference) }}"
+    pf_proposed_live_migration: "{{ pf_eligible | length >= 2 }}"
+    pf_report_time: "{{ now(utc=true, fmt='%Y-%m-%d %H:%M UTC') }}"
+
+- name: Expose results for later roles
+  ansible.builtin.set_fact:
+    preflight_done: true
+    preflight_blockers: "{{ pf_blockers }}"
+    preflight_cnv_installed: "{{ pf_cnv_installed | bool }}"
+    preflight_mtv_installed: "{{ pf_mtv_installed | bool }}"
+    preflight_eligible_workers: "{{ pf_eligible | map(attribute='name') | list }}"
+    preflight_ingress_domain: "{{ pf_ingress_domain }}"
+    preflight_proxy: "{{ pf_proxy }}"
+    preflight_proxy_trusted_ca: "{{ pf_proxy_trusted_ca }}"
+
+- name: Ensure reports directory exists
+  ansible.builtin.file:
+    path: "{{ reports_dir }}"
+    state: directory
+    mode: "0755"
+  check_mode: false
+
+- name: Write reports/preflight.md
+  ansible.builtin.template:
+    src: preflight.md.j2
+    dest: "{{ preflight_report_path }}"
+    mode: "0644"
+  check_mode: false
+  # The report has a timestamp; it is a local file, not a cluster change.
+  changed_when: false
+
+- name: Preflight summary
+  ansible.builtin.debug:
+    msg:
+      - "OpenShift {{ pf_ocp_version_full }} / Kubernetes {{ pf_k8s_version }}"
+      - "VM-eligible workers ({{ pf_eligible | length }}): {{ pf_eligible | map(attribute='name') | join(', ') or 'none' }}"
+      - "Live migration: {{ 'enabled' if pf_proposed_live_migration else 'DISABLED (fewer than 2 eligible workers)' }}"
+      - "OpenShift Virtualization: {{ 'INSTALLED (will be removed by site.yml)' if pf_cnv_installed | bool else 'not installed' }} / MTV: {{ 'INSTALLED' if pf_mtv_installed | bool else 'not installed' }}"
+      - "Ceph: {{ pf_ceph_health }}, {{ pf_ceph_avail | human_bytes }} free"
+      - "Blockers: {{ pf_blockers | length }} / Warnings: {{ pf_warnings | length }}"
+      - "Report: {{ preflight_report_path }}"
+
+- name: Blockers
+  ansible.builtin.debug:
+    msg: "{{ pf_blockers }}"
+  when: pf_blockers | length > 0
+
+- name: Warnings
+  ansible.builtin.debug:
+    msg: "{{ pf_warnings }}"
+  when: pf_warnings | length > 0

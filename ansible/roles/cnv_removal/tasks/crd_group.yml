@@ -1,0 +1,51 @@
+---
+# Delete the CRDs of an API group family once no custom resources are left.
+# Input: crd_group_regex (matched against spec.group), crd_protected_groups.
+- name: List CRDs
+  kubernetes.core.k8s_info:
+    api_version: apiextensions.k8s.io/v1
+    kind: CustomResourceDefinition
+  register: crdg_all
+
+- name: Select orphan CRDs
+  ansible.builtin.set_fact:
+    crdg_orphans: >-
+      {{ crdg_all.resources
+         | selectattr('spec.group', 'match', '.*' ~ crd_group_regex)
+         | rejectattr('spec.group', 'in', crd_protected_groups | default(cnv_protected_crd_groups))
+         | list }}
+
+- name: Show orphan CRDs
+  ansible.builtin.debug:
+    msg: "{{ crdg_orphans | map(attribute='metadata.name') | list }}"
+
+- name: Count remaining custom resources for each orphan CRD
+  kubernetes.core.k8s_info:
+    api_version: "{{ item.spec.group }}/{{ (item.spec.versions | selectattr('storage') | first).name }}"
+    kind: "{{ item.spec.names.kind }}"
+  loop: "{{ crdg_orphans }}"
+  loop_control:
+    label: "{{ item.metadata.name }}"
+  register: crdg_usage
+
+- name: Stop if a CRD still has objects
+  ansible.builtin.assert:
+    that: crdg_usage.results | selectattr('resources', 'defined') | map(attribute='resources') | flatten | length == 0
+    fail_msg: >-
+      Some objects still exist (stuck finalizers?):
+      {{ crdg_usage.results | selectattr('resources', 'defined') | map(attribute='resources') | flatten
+         | map(attribute='kind') | zip(crdg_usage.results | selectattr('resources', 'defined')
+         | map(attribute='resources') | flatten | map(attribute='metadata.name')) | map('join', '/') | list }}
+    quiet: true
+
+- name: Delete orphan CRDs
+  kubernetes.core.k8s:
+    state: absent
+    api_version: apiextensions.k8s.io/v1
+    kind: CustomResourceDefinition
+    name: "{{ item.metadata.name }}"
+    wait: true
+    wait_timeout: 300
+  loop: "{{ crdg_orphans }}"
+  loop_control:
+    label: "{{ item.metadata.name }}"

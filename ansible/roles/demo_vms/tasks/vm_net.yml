@@ -1,0 +1,6 @@
+---
+- name: VirtualMachine vm-net (pod network + {{ secondary_nad_name }})
+  kubernetes.core.k8s:
+    state: present
+    apply: true
+    definition: "{{ lookup('ansible.builtin.template', 'vm-net.yaml.j2') | from_yaml }}"

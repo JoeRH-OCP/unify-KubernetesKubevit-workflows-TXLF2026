@@ -1,0 +1,15 @@
+---
+demo_namespace_labels:
+  pod-security.kubernetes.io/enforce: privileged
+  pod-security.kubernetes.io/audit: privileged
+  pod-security.kubernetes.io/warn: privileged
+  security.openshift.io/scc.podSecurityLabelSync: "false"
+demo_web_host: "vm-web.{{ demo_ingress_domain }}"
+demo_containerdisk_image: "{{ containerdisk_registry }}/{{ containerdisk_repo }}:{{ fedora_containerdisk_tag }}"
+demo_clone_prefix: "vm-clone"
+demo_snapshot_name: "vm-web-snapshot"
+demo_restore_name: "vm-web-restore"
+demo_landing_poll_ms: 2000
+demo_golden_import_timeout_s: 1800
+demo_vm_net_primary_mac: "02:7a:4c:46:00:01"
+demo_vm_net_mac: "02:7a:4c:46:00:10"

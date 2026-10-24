@@ -1,0 +1,14 @@
+---
+- name: Check virt_mode
+  ansible.builtin.assert:
+    that: virt_mode | default('kubevirt') in ['kubevirt', 'cnv']
+    fail_msg: "virt_mode must be 'kubevirt' or 'cnv', not '{{ virt_mode }}'."
+    quiet: true
+
+- name: Upstream KubeVirt (virt_mode=kubevirt)
+  ansible.builtin.include_tasks: upstream.yml
+  when: virt_mode | default('kubevirt') == 'kubevirt'
+
+- name: OpenShift Virtualization (virt_mode=cnv)
+  ansible.builtin.include_tasks: cnv.yml
+  when: virt_mode | default('kubevirt') == 'cnv'

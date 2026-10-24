@@ -1,0 +1,33 @@
+apiVersion: kubevirt.io/v1
+kind: KubeVirt
+metadata:
+  name: kubevirt
+  namespace: {{ kubevirt_namespace }}
+  labels:
+    {{ event_labels | to_nice_yaml(indent=2) | indent(4) }}
+spec:
+  # virt-operator copies productName into app.kubernetes.io/part-of on the
+  # components it creates (virt-api, virt-controller, virt-handler).
+  productName: {{ event_slug }}
+  productComponent: kubevirt
+  imagePullPolicy: IfNotPresent
+  certificateRotateStrategy: {}
+  workloadUpdateStrategy:
+    workloadUpdateMethods:
+      - LiveMigrate
+  configuration:
+    developerConfiguration:
+      featureGates: {{ kubevirt_feature_gates | to_json }}
+{% if kubevirt_cpu_model %}
+    cpuModel: {{ kubevirt_cpu_model }}
+{% endif %}
+{% if enable_live_migration | bool %}
+    evictionStrategy: LiveMigrate
+{% endif %}
+    migrations:
+      {{ kubevirt_migrations | to_nice_yaml(indent=2) | indent(6) }}
+{% if kubevirt_node_placement %}
+  workloads:
+    nodePlacement:
+      {{ kubevirt_node_placement | to_nice_yaml(indent=2) | indent(6) }}
+{% endif %}

@@ -1,0 +1,28 @@
+---
+# Demo scenario only (KubeVirt/CDI must already be installed).
+#   ansible-navigator run demo.yml                     # quick, web, clone, scale, network
+#   ansible-navigator run demo.yml --tags scale -e clone_count=5
+#   ansible-navigator run demo.yml --tags migrate      # live migration of vm-web
+#   ansible-navigator run demo.yml --tags snapshot     # VirtualMachineSnapshot
+#   ansible-navigator run demo.yml --tags restore      # restore vm-web from it
+- name: TXLF 2026 | Demo scenario
+  hosts: localhost
+  gather_facts: false
+  environment:
+    K8S_AUTH_KUBECONFIG: "{{ kubeconfig_path }}"
+    KUBECONFIG: "{{ kubeconfig_path }}"
+  tasks:
+    - name: Optional secondary network
+      ansible.builtin.import_role:
+        name: demo_network
+      tags: [network]
+
+    - name: Demo VMs
+      ansible.builtin.import_role:
+        name: demo_vms
+
+    - name: Status
+      ansible.builtin.include_role:
+        name: demo_vms
+        tasks_from: verify.yml
+      tags: [verify, always]

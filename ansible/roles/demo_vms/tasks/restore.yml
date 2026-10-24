@@ -1,0 +1,47 @@
+---
+- name: Stop vm-web (restore needs the VM stopped)
+  kubevirt.core.kubevirt_vm:
+    state: stopped
+    name: vm-web
+    namespace: "{{ demo_namespace }}"
+    wait: true
+    wait_timeout: 300
+
+- name: Remove the previous restore object
+  kubernetes.core.k8s:
+    state: absent
+    api_version: snapshot.kubevirt.io/v1beta1
+    kind: VirtualMachineRestore
+    namespace: "{{ demo_namespace }}"
+    name: "{{ demo_restore_name }}"
+    wait: true
+
+- name: VirtualMachineRestore from {{ demo_snapshot_name }}
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: snapshot.kubevirt.io/v1beta1
+      kind: VirtualMachineRestore
+      metadata:
+        name: "{{ demo_restore_name }}"
+        namespace: "{{ demo_namespace }}"
+        labels: "{{ event_labels }}"
+      spec:
+        target:
+          apiGroup: kubevirt.io
+          kind: VirtualMachine
+          name: vm-web
+        virtualMachineSnapshotName: "{{ demo_snapshot_name }}"
+    wait: true
+    wait_condition:
+      type: Ready
+      status: "True"
+    wait_timeout: 600
+
+- name: Start vm-web again
+  kubevirt.core.kubevirt_vm:
+    state: started
+    name: vm-web
+    namespace: "{{ demo_namespace }}"
+    wait: true
+    wait_timeout: 600

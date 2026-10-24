@@ -1,0 +1,72 @@
+---
+# Logs in to every cluster in clusters.vault.yml (OpenShift OAuth, user +
+# password) and writes one kubeconfig per cluster in clusters/<name>/.
+# Called by scripts/run-clusters.sh; you can also run it alone:
+#   ansible-navigator run cluster-login.yml --ask-vault-pass
+#   ansible-navigator run cluster-login.yml --ask-vault-pass -e cluster_only=lab01,lab02
+- name: TXLF 2026 | Log in to the clusters
+  hosts: localhost
+  gather_facts: false
+  vars:
+    clusters_file: "{{ playbook_dir }}/clusters.vault.yml"
+    # Comma-separated names to limit the login. Empty = all.
+    cluster_only: ""
+    # Lab clusters usually have a self-signed API certificate.
+    clusters_validate_certs: false
+  tasks:
+    - name: Load the cluster list
+      ansible.builtin.include_vars:
+        file: "{{ clusters_file }}"
+        name: cluster_inventory
+
+    - name: Select clusters
+      ansible.builtin.set_fact:
+        selected_clusters: >-
+          {{ cluster_inventory.clusters
+             if not cluster_only
+             else cluster_inventory.clusters | selectattr('name', 'in', cluster_only.split(',')) | list }}
+
+    - name: Require unique, valid cluster names
+      ansible.builtin.assert:
+        that:
+          - selected_clusters | length > 0
+          - selected_clusters | map(attribute='name') | unique | length == selected_clusters | length
+          - selected_clusters | map(attribute='name') | reject('match', '^[a-z0-9][a-z0-9-]*$') | list | length == 0
+        fail_msg: "Cluster names must be unique and use only lowercase letters, digits and '-'."
+        quiet: true
+
+    - name: Reset login results
+      ansible.builtin.set_fact:
+        cluster_login_ok: []
+        cluster_login_names: []
+        cluster_login_failed: []
+
+    - name: Create the clusters/ folder
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/clusters"
+        state: directory
+        mode: "0700"
+
+    - name: Log in to each cluster
+      ansible.builtin.include_tasks: tasks/cluster_login.yml
+      loop: "{{ selected_clusters }}"
+      loop_control:
+        loop_var: cluster
+        label: "{{ cluster.name }}"
+
+    - name: Write clusters/logged-in.txt (used by run-clusters.sh)
+      ansible.builtin.copy:
+        dest: "{{ playbook_dir }}/clusters/logged-in.txt"
+        mode: "0644"
+        content: "{{ (cluster_login_names | join('\n')) ~ '\n' }}"
+
+    - name: Login summary
+      ansible.builtin.debug:
+        msg:
+          - "Logged in: {{ cluster_login_ok | join(', ') or 'none' }}"
+          - "FAILED:    {{ cluster_login_failed | join(' | ') or 'none' }}"
+
+    - name: Fail when every login failed
+      ansible.builtin.fail:
+        msg: "No cluster login succeeded. Check console_url/password in {{ clusters_file }}."
+      when: cluster_login_names | length == 0

@@ -1,0 +1,4 @@
+---
+demo_nncp_name: "{{ event_slug }}-{{ secondary_bridge_name }}"
+# NNCP needs a label selector; affinity-based placement can't be reused here.
+demo_nncp_node_selector: "{{ kubevirt_node_placement.nodeSelector | default({'node-role.kubernetes.io/worker': ''}) }}"

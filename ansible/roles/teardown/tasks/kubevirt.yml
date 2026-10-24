@@ -1,0 +1,34 @@
+---
+# Same steps as the upstream uninstall guide (https://kubevirt.io/user-guide/cluster_admin/updating_and_deletion/).
+- name: Delete the KubeVirt CR (operator removes its components)
+  kubernetes.core.k8s:
+    state: absent
+    api_version: kubevirt.io/v1
+    kind: KubeVirt
+    namespace: kubevirt
+    name: kubevirt
+    wait: true
+    wait_timeout: "{{ teardown_wait_timeout }}"
+
+- name: Delete leftover APIService and webhooks
+  kubernetes.core.k8s:
+    state: absent
+    api_version: "{{ item.api_version }}"
+    kind: "{{ item.kind }}"
+    name: "{{ item.name }}"
+  loop:
+    - { api_version: apiregistration.k8s.io/v1, kind: APIService, name: v1.subresources.kubevirt.io }
+    - { api_version: admissionregistration.k8s.io/v1, kind: MutatingWebhookConfiguration, name: virt-api-mutator }
+    - { api_version: admissionregistration.k8s.io/v1, kind: ValidatingWebhookConfiguration, name: virt-operator-validator }
+    - { api_version: admissionregistration.k8s.io/v1, kind: ValidatingWebhookConfiguration, name: virt-api-validator }
+  loop_control:
+    label: "{{ item.kind }}/{{ item.name }}"
+
+- name: Delete the KubeVirt operator
+  ansible.builtin.include_role:
+    name: kubevirt
+    tasks_from: apply_manifest.yml
+  vars:
+    manifest_state: absent
+    manifest_url: "{{ kubevirt_release_url }}/kubevirt-operator.yaml"
+    manifest_file: "kubevirt-operator-{{ kubevirt_version }}.yaml"
