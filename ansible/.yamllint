@@ -17,3 +17,5 @@ ignore: |
   .cache/
   collections/
   context/
+  reports/
+  clusters/

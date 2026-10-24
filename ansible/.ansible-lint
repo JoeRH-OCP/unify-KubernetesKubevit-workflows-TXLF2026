@@ -5,5 +5,7 @@ exclude_paths:
   - collections/
   - context/
   - manifests/   # plain Kubernetes YAML, not Ansible
+  - reports/     # generated per run
+  - clusters/    # generated per run (multi-cluster)
 skip_list:
   - var-naming[no-role-prefix]   # shared vars live in group_vars/all on purpose
