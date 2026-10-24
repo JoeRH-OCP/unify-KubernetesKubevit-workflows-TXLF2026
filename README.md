@@ -13,7 +13,7 @@ A 90-minute hands-on workshop at Texas Linux Fest 2026. KubeVirt lets organizati
 
 ## Workshop material
 
-- [Visual workshop site](workshop/index.html) (Spanish) · [English](workshop/index.en.html)
+- [Visual workshop site](workshop/index.html) (English) · [Español](workshop/index.es.html)
 - [Agenda and module map](workshop/README.md)
 - Session modules: [1. Access](workshop/session/01-access.md) · [2. How KubeVirt works](workshop/session/02-how-kubevirt-works.md) · [3. VM lifecycle](workshop/session/03-vm-lifecycle.md) · [4. Storage](workshop/session/04-storage.md) · [5. Networking](workshop/session/05-networking.md) · [6. Day-2 operations](workshop/session/06-day2-operations.md) · [7. Trade-offs](workshop/session/07-tradeoffs-and-wrap-up.md)
 - [Instructor guide](workshop/instructor/instructor-guide.md)

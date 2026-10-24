@@ -3,7 +3,7 @@
 <p align="center"><img src="assets/txlf-logo-wide.png" alt="Texas Linux Fest, TXLF" width="420"></p>
 <p align="center"><strong>Texas Linux Fest 2026 · TXLF2026</strong></p>
 
-[Workshop site in Spanish](index.html) · [Workshop site in English](index.en.html)
+[Workshop site in English](index.html) · [Workshop site in Spanish](index.es.html)
 
 ## Audience and delivery
 
