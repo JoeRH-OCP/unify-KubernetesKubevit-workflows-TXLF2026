@@ -3,7 +3,7 @@
 # KubeVirt -> CDI -> kubevirt-manager -> console branding -> network -> demo VMs -> verify.
 #   ansible-navigator run site.yml -e confirm_cnv_removal=true [-e confirm_mtv_removal=true]
 #   ansible-navigator run site.yml -e virt_mode=cnv           # keep OpenShift Virtualization
-- name: TXLF 2026 | Upstream KubeVirt demo
+- name: TXLF 2026 | Unified Workload Migration with KubeVirt
   hosts: localhost
   gather_facts: false
   environment:

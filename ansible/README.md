@@ -1,6 +1,6 @@
-# Texas Linux Fest 2026 — Upstream KubeVirt demo
+# Texas Linux Fest 2026: Unified Workload Migration with KubeVirt
 
-**Upstream KubeVirt: VMs the Kubernetes way.** This repo uses Ansible to deploy
+**Unified Workload Migration with KubeVirt.** This repo uses Ansible to deploy
 upstream [KubeVirt](https://kubevirt.io) and
 [CDI](https://github.com/kubevirt/containerized-data-importer) on an OpenShift
 bare-metal lab. It uses standard Kubernetes APIs (Ingress, DataVolumes on CSI,
@@ -310,7 +310,10 @@ ansible-navigator run teardown.yml -e confirm_teardown=true
 Upstream kubevirt-manager only puts basic auth on the UI (`location /`). The `/k8s` path, a `kubectl proxy` with cluster-wide VM rights, stays open. This repo ships its own nginx `default.conf`, based on v1.5.4, with **auth on `/k8s` too**. Auth is always on:
 
 - **User:** `admin`
-- **Password:** `kubevirt_manager_auth_password`, or, if that's empty, a password generated once into `reports/kubevirt-manager-password`.
+- **Password:**
+  - **Multi-cluster runs** (`scripts/run-clusters.sh`): the cluster's own admin password from `clusters.vault.yml`, unless that cluster's `vars` set `kubevirt_manager_auth_password`.
+  - **Single-cluster runs:** `kubevirt_manager_auth_password`, or, if that's empty, a password generated once into `reports/kubevirt-manager-password` (`cat reports/kubevirt-manager-password`).
+  - To change it: `ansible-navigator run site.yml --tags kubevirt_manager -e kubevirt_manager_auth_password='...'`.
 
 ## Running on many clusters
 
@@ -418,7 +421,7 @@ k get vm -l app.kubernetes.io/component=clone
 
 Show **kubevirt-manager** in the browser (TXLF branding), and the VMs on their nodes.
 
-### 6. Live migration — the audience watches the landing page (4 min)
+### 6. Live migration: the audience watches the landing page (4 min)
 
 Open `https://vm-web.apps.<domain>`. It shows the node and refreshes every 2 seconds.
 
