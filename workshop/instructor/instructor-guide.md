@@ -73,22 +73,25 @@ Your own laptop, for the projector:
 
 | Clock | Module | You do | Checkpoint before moving on |
 |---|---|---|---|
-| 0:00 | 1. Access | Show the handout, the web terminal, `virtctl` download | Everyone sees 5 VMs `Running` |
-| 0:05 | 2. A VM is a Pod | Explain VM / VMI / virt-launcher; live-type `kubectl apply` | `vm-live` Running, SSH works |
-| 0:20 | 3. Disks are PVCs | Show `golden-image`, Block/RWX, snapshot clone | `vm-clone-live` DataVolume `Succeeded` |
-| 0:35 | 4. Workload migration | Project the landing page during `virtctl migrate`; then snapshot/restore on `vm-web` while they do it on `vm-clone-live` | Node changed; `/srv/data.txt` restored |
-| 1:05 | 5. Expose and observe | Service selector, `virtctl expose`, Observe > Metrics, kubevirt-manager graphs | One PromQL query returns data |
-| 1:20 | 6. Wrap-up | Recap table, containers vs VMs, next steps, questions | |
+| 0:00 | 1. Access from your browser | Show the handout, the web terminal, the `virtctl` download | Everyone sees 5 VMs `Running` |
+| 0:05 | 2. How KubeVirt works | The "worries" table, VM / VMI / virt-launcher; live-type `kubectl apply`; use cases | `vm-live` Running |
+| 0:20 | 3. VM lifecycle | SSH, serial console, stop/start/restart, `runStrategy` | SSH into `vm-live` works |
+| 0:30 | 4. Storage | `golden-image`, Block/RWX, snapshot clone | `vm-clone-live` DataVolume `Succeeded` |
+| 0:42 | 5. Networking | Pod IP, Service selector, a container calling the VM, `virtctl expose` | The `curl` container gets `200` |
+| 0:54 | 6. Day-2 operations | Project the landing page during `virtctl migrate`; cordon; snapshot/restore on `vm-web` while they do it on `vm-clone-live`; Observe > Metrics | Node changed; `/srv/data.txt` restored |
+| 1:14 | 7. Trade-offs and one control plane | One-control-plane table, honest trade-offs, containers or VMs, questions | |
+| 1:24 | Buffer | Questions, stragglers, Plan B | |
 
-If the room is behind, cut Module 4 Part B (cordon) and Module 5's `virtctl expose`. Never cut the live migration: it is the main message of the session.
+If the room is behind, cut the cordon step and the metrics queries in Module 6, and `virtctl expose` in Module 5. Never cut the live migration or the trade-offs: they are what the abstract promises.
 
 ## 5. Plan B
 
 | Problem | Quick fix |
 |---|---|
 | A participant cluster is broken | Pair the participant with a neighbor; fix later with `run-clusters.sh site.yml --only <name>` |
-| Web terminal does not start | Use the laptop path (`oc login` + `virtctl` download), or pair up |
+| Web terminal does not start | Pair up; as a last resort, `oc login` from a laptop terminal |
 | `virtctl` download blocked | Use the kubevirt-manager UI for console, start, stop and migrate |
+| `quay.io/curl/curl` cannot be pulled (Module 5) | `kubectl run` with any image that has curl, or show it on your cluster |
 | Migration stuck in `Scheduling` | `kubectl describe vmi vm-web`: usually CPU or memory; migrate a clone instead, or show it on your cluster |
 | Docker Hub rate limit (kubevirt-manager image) | Set `kubevirt_manager_image_registry` to a mirror before the event (see `ansible/README.md`) |
 | Restore never completes | The VM must be stopped: `virtctl stop`, then `kubectl wait vmi/<name> --for=delete` |

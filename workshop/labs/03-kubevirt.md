@@ -91,4 +91,4 @@ OpenShift users can use `oc` for Kubernetes resources. Install the `virtctl` bin
 
 ## Optional live migration
 
-Only attempt migration if the cluster and VM storage are explicitly configured for it (RWX disks, two or more schedulable nodes, a common CPU model). The TXLF demo clusters are: see [Module 4 of the 90-minute session](../session/04-workload-migration.md) for the full flow. Otherwise, explain the workflow and inspect migration readiness with the `LiveMigratable` condition; do not treat a failed migration on an unprepared lab cluster as a KubeVirt failure.
+Only attempt migration if the cluster and VM storage are explicitly configured for it (RWX disks, two or more schedulable nodes, a common CPU model). The TXLF demo clusters are: see [Module 6 of the 90-minute session](../session/06-day2-operations.md) for the full flow. Otherwise, explain the workflow and inspect migration readiness with the `LiveMigratable` condition; do not treat a failed migration on an unprepared lab cluster as a KubeVirt failure.

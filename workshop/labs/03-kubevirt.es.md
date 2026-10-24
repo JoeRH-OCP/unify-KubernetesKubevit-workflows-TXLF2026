@@ -86,4 +86,4 @@ Quienes usan OpenShift pueden usar `oc`. Instala `virtctl` compatible con la ver
 
 ## Live migration opcional
 
-Inténtala solo si el clúster y el almacenamiento de la VM están configurados explícitamente para ello (discos RWX, dos o más nodos programables, un modelo de CPU común). Los clústeres de demo de TXLF lo están: consulta el [Módulo 4 de la sesión de 90 minutos](../session/04-workload-migration.es.md) para ver el flujo completo. De lo contrario, explica el flujo y revisa readiness con la condición `LiveMigratable`; una migración fallida en un clúster no preparado no implica un fallo de KubeVirt.
+Inténtala solo si el clúster y el almacenamiento de la VM están configurados explícitamente para ello (discos RWX, dos o más nodos programables, un modelo de CPU común). Los clústeres de demo de TXLF lo están: consulta el [Módulo 6 de la sesión de 90 minutos](../session/06-day2-operations.es.md) para ver el flujo completo. De lo contrario, explica el flujo y revisa readiness con la condición `LiveMigratable`; una migración fallida en un clúster no preparado no implica un fallo de KubeVirt.

@@ -1,4 +1,4 @@
-# Unified Workload Migration with KubeVirt: TXLF 2026
+# KubeVirt Without Fear: Running VMs and Containers Together on One Platform
 
 <p align="center">
   <img src="workshop/assets/txlf-logo-wide.png" alt="Texas Linux Fest, TXLF" width="520">
@@ -7,15 +7,15 @@
 
 <p align="center"><img src="workshop/assets/kubevirt-cluster-hero.png" alt="Kubernetes cluster running container workloads and a persistent Linux virtual machine" width="760"></p>
 
-A 90-minute hands-on workshop: run virtual machines next to containers on Kubernetes with KubeVirt, clone them in seconds, and move them between nodes while they keep serving traffic.
+A 90-minute hands-on workshop at Texas Linux Fest 2026. KubeVirt lets organizations run virtual machines and containers side by side on Kubernetes. This session removes the confusion and fear around it: how KubeVirt works, what it solves, VM lifecycle, networking, storage, day-2 operations, and the practical trade-offs of one control plane for legacy and modern applications.
 
-**Duration:** 90 minutes · **Audience:** Linux administrators and anyone curious about VMs on Kubernetes · **Format:** one prepared OpenShift cluster per participant, guided commands with checkpoints
+**Duration:** 90 minutes · **Audience:** Linux administrators and anyone curious about VMs on Kubernetes · **Format:** bring a laptop; all exercises run in the browser, one prepared cluster per participant
 
 ## Workshop material
 
 - [Visual workshop site](workshop/index.html) (Spanish) · [English](workshop/index.en.html)
 - [Agenda and module map](workshop/README.md)
-- Session modules: [1. Access](workshop/session/01-access.md) · [2. A VM is a Pod](workshop/session/02-vms-are-pods.md) · [3. Disks are PVCs](workshop/session/03-disks-and-clones.md) · [4. Unified workload migration](workshop/session/04-workload-migration.md) · [5. Expose and observe](workshop/session/05-expose-and-observe.md) · [6. Wrap-up](workshop/session/06-wrap-up.md)
+- Session modules: [1. Access](workshop/session/01-access.md) · [2. How KubeVirt works](workshop/session/02-how-kubevirt-works.md) · [3. VM lifecycle](workshop/session/03-vm-lifecycle.md) · [4. Storage](workshop/session/04-storage.md) · [5. Networking](workshop/session/05-networking.md) · [6. Day-2 operations](workshop/session/06-day2-operations.md) · [7. Trade-offs](workshop/session/07-tradeoffs-and-wrap-up.md)
 - [Instructor guide](workshop/instructor/instructor-guide.md)
 - [Self-paced extras](workshop/README.md#self-paced-extras): the original two-day labs
 

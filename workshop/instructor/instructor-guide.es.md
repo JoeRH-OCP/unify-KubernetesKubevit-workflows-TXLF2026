@@ -73,22 +73,25 @@ Tu propia laptop, para el proyector:
 
 | Reloj | Módulo | Qué haces | Checkpoint antes de avanzar |
 |---|---|---|---|
-| 0:00 | 1. Accede a tu cluster | Muestra la tarjeta, la terminal web y la descarga de `virtctl` | Todos ven 5 VMs en `Running` |
-| 0:05 | 2. Una VM es un Pod | Explica VM / VMI / virt-launcher; escribe `kubectl apply` en vivo | `vm-live` en Running y SSH funciona |
-| 0:20 | 3. Los discos son PVCs | Muestra `golden-image`, Block/RWX y el clon desde snapshot | DataVolume de `vm-clone-live` en `Succeeded` |
-| 0:35 | 4. Migración unificada de cargas de trabajo | Proyecta la página de inicio durante `virtctl migrate`; después haz snapshot/restore en `vm-web` mientras ellos lo hacen en `vm-clone-live` | El nodo cambió; `/srv/data.txt` restaurado |
-| 1:05 | 5. Exponer y observar | Selector del Service, `virtctl expose`, Observe > Metrics, gráficas de kubevirt-manager | Una consulta PromQL devuelve datos |
-| 1:20 | 6. Cierre y siguientes pasos | Tabla de repaso, contenedores vs VMs, siguientes pasos, preguntas | |
+| 0:00 | 1. Accede desde tu navegador | Muestra la tarjeta, la terminal web y la descarga de `virtctl` | Todos ven 5 VMs en `Running` |
+| 0:05 | 2. Cómo funciona KubeVirt | La tabla de "miedos", VM / VMI / virt-launcher; escribe `kubectl apply` en vivo; casos de uso | `vm-live` en Running |
+| 0:20 | 3. Ciclo de vida de la VM | SSH, consola serial, stop/start/restart, `runStrategy` | El SSH a `vm-live` funciona |
+| 0:30 | 4. Almacenamiento | `golden-image`, Block/RWX, clon desde snapshot | DataVolume de `vm-clone-live` en `Succeeded` |
+| 0:42 | 5. Redes | IP del Pod, selector del Service, un contenedor llamando a la VM, `virtctl expose` | El contenedor `curl` recibe `200` |
+| 0:54 | 6. Operaciones de día 2 | Proyecta la landing durante `virtctl migrate`; cordon; snapshot/restore en `vm-web` mientras ellos lo hacen en `vm-clone-live`; Observe > Metrics | El nodo cambió; `/srv/data.txt` restaurado |
+| 1:14 | 7. Trade-offs y un solo plano de control | Tabla del plano de control, trade-offs honestos, ¿contenedores o VMs?, preguntas | |
+| 1:24 | Margen | Preguntas, rezagados, plan B | |
 
-Si el grupo va atrasado, recorta la Parte B del Módulo 4 (cordon) y el `virtctl expose` del Módulo 5. Nunca recortes la live migration: es el mensaje principal de la sesión.
+Si el grupo va atrasado, recorta el paso de cordon y las consultas de métricas del Módulo 6, y el `virtctl expose` del Módulo 5. Nunca recortes la migración en vivo ni los trade-offs: es lo que promete el abstract.
 
 ## 5. Plan B
 
 | Problema | Solución rápida |
 |---|---|
 | El clúster de un participante está roto | Forma pareja con alguien cercano; corrígelo después con `run-clusters.sh site.yml --only <name>` |
-| La terminal web no inicia | Usa la ruta desde laptop (`oc login` + descarga de `virtctl`) o formen parejas |
+| La terminal web no inicia | Formen parejas; como último recurso, `oc login` desde una terminal en la laptop |
 | La descarga de `virtctl` está bloqueada | Usa la UI de kubevirt-manager para consola, start, stop y migrate |
+| No se puede descargar `quay.io/curl/curl` (Módulo 5) | `kubectl run` con cualquier imagen que tenga curl, o muéstralo en tu cluster |
 | Migración atorada en `Scheduling` | `kubectl describe vmi vm-web`: normalmente es CPU o memoria; migra un clon en su lugar o muéstralo en tu clúster |
 | Límite de descargas de Docker Hub (imagen de kubevirt-manager) | Define `kubevirt_manager_image_registry` con un mirror antes del evento (consulta `ansible/README.md`) |
 | El restore nunca termina | La VM debe estar detenida: `virtctl stop` y luego `kubectl wait vmi/<name> --for=delete` |

@@ -1,6 +1,6 @@
-# Texas Linux Fest 2026: Unified Workload Migration with KubeVirt
+# Texas Linux Fest 2026: KubeVirt Without Fear
 
-**Unified Workload Migration with KubeVirt.** This repo uses Ansible to deploy
+**KubeVirt Without Fear: Running VMs and Containers Together on One Platform.** This repo uses Ansible to deploy
 upstream [KubeVirt](https://kubevirt.io) and
 [CDI](https://github.com/kubevirt/containerized-data-importer) on an OpenShift
 bare-metal lab. It uses standard Kubernetes APIs (Ingress, DataVolumes on CSI,
