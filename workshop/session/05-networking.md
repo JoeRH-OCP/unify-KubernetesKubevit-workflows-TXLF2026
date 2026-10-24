@@ -3,6 +3,12 @@
 **Time:** 15 minutes
 **Goal:** See that a VM sits on the Pod network, is reached through a normal Service, and talks to containers by DNS name.
 
+## The picture
+
+![How traffic reaches vm-web: browser, Route/Ingress, Service, virt-launcher Pod and the VM, next to the containers on the same Pod network](../assets/diagrams/networking.drawio.svg)
+
+Keep this picture in mind: each section below checks one arrow of it.
+
 ## A VM on the Pod network
 
 ```bash

@@ -147,6 +147,61 @@ In kubevirt-manager the same metrics are drawn per VM:
 
 ![The Monitoring tab of vm-web in kubevirt-manager](../assets/screenshots/kvm-monitoring.png)
 
+## Day 2 with Ansible
+
+Everything you did in this module is a Kubernetes API call, so you can automate it with Ansible too. This lab was built that way: the `ansible/` folder you cloned deploys KubeVirt and creates every demo VM.
+
+The [`kubevirt.core`](https://galaxy.ansible.com/ui/repo/published/kubevirt/core/) collection gives you:
+
+| Plugin | What it does |
+|---|---|
+| `kubevirt.core.kubevirt_vm` | Create, change, start, stop or delete a VM, declaratively |
+| `kubevirt.core.kubevirt_vm_info`, `kubevirt_vmi_info` | Read VMs and running instances (status, node, IPs) |
+| `kubevirt.core.kubevirt` (inventory) | Turns the running VMs into Ansible hosts, grouped by namespace and label |
+
+Together with `kubernetes.core.k8s` (snapshots, Services, anything else), that covers both layers:
+
+- **The platform**: VMs, disks, snapshots and migrations, through the Kubernetes API.
+- **The guest**: the inventory plugin lists the VMs as hosts, so your usual playbooks (patching, users, config) run inside them as on any Linux server.
+
+An inventory file that finds the workshop VMs:
+
+```yaml
+# kubevirt.yml (the file name must end in kubevirt.yml)
+plugin: kubevirt.core.kubevirt
+namespaces:
+  - demo-vms
+```
+
+A playbook that uses both layers:
+
+```yaml
+- name: Report where each VM runs
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Read the running VMs
+      kubevirt.core.kubevirt_vmi_info:
+        namespace: demo-vms
+      register: vmis
+
+    - name: Show VM and node
+      ansible.builtin.debug:
+        msg: "{{ item.metadata.name }} runs on {{ item.status.nodeName }}"
+      loop: "{{ vmis.resources }}"
+
+- name: Patch the guests like any Linux server
+  hosts: all  # every VM the inventory found in demo-vms
+  become: true
+  tasks:
+    - name: Update all packages
+      ansible.builtin.dnf:
+        name: "*"
+        state: latest
+```
+
+You do not need to run this today: Ansible is not installed in the web terminal. To reach the guests over SSH, Ansible must run where the Pod network is reachable (for example in a Pod or in Ansible Automation Platform) or use a NodePort/LoadBalancer Service for SSH (the inventory option `use_service`). See `ansible/roles/demo_vms` in the repo for real examples.
+
 ## Troubleshooting
 
 The evidence is where it is for any Pod:

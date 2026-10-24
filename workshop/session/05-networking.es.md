@@ -3,6 +3,12 @@
 **Tiempo:** 15 minutos
 **Objetivo:** Ve que una VM vive en la red de Pods, se alcanza con un Service normal y habla con contenedores por nombre DNS.
 
+## El panorama
+
+![Cómo llega el tráfico a vm-web: navegador, Route/Ingress, Service, Pod virt-launcher y la VM, junto a los contenedores en la misma red de Pods](../assets/diagrams/networking.drawio.svg)
+
+Ten este dibujo a la mano: cada sección de abajo comprueba una de sus flechas.
+
 ## Una VM en la red de Pods
 
 ```bash
