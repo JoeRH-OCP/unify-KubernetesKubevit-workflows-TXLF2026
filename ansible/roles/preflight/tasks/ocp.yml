@@ -1,7 +1,9 @@
 ---
-- name: Read Kubernetes server version
+# invalidate_cache: the client keeps API discovery in a temp file; after CNV/CRDs
+# are removed it would still ask for gone API groups and get 404s.
+- name: Read Kubernetes server version (and refresh the API discovery cache)
   kubernetes.core.k8s_cluster_info:
-    invalidate_cache: false
+    invalidate_cache: true
   register: pf_cluster_info
 
 - name: Read ClusterVersion

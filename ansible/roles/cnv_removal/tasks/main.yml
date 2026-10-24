@@ -66,3 +66,11 @@
 
     - name: Orphan CRDs, APIServices, webhooks and SCCs
       ansible.builtin.import_tasks: leftovers.yml
+
+    # Many API groups are gone now: refresh the client's discovery cache so
+    # later tasks don't ask for them (404).
+    - name: Refresh the API discovery cache
+      kubernetes.core.k8s_cluster_info:
+        invalidate_cache: true
+      register: cnv_refresh
+      changed_when: false
