@@ -42,11 +42,83 @@ kubectl get pods -n kubevirt
 
 ## Create a VM with kubectl
 
-The manifest is plain YAML, like any other workload:
+The manifest is plain YAML, like any other workload. This is `manifests/01-vm-live.yaml`:
+
+```yaml
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: vm-live
+  namespace: demo-vms
+  labels:
+    app.kubernetes.io/part-of: txlf-2026
+    app.kubernetes.io/component: vm-live
+spec:
+  runStrategy: Always
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: txlf-2026
+        app.kubernetes.io/component: vm-live
+    spec:
+      domain:
+        cpu:
+          cores: 1
+          sockets: 1
+          threads: 1
+        # kubevirt-manager reads cpu cores/sockets/threads and resources.requests.memory
+        resources:
+          requests:
+            memory: 2Gi
+        devices:
+          disks:
+            - name: containerdisk
+              disk:
+                bus: virtio
+            - name: cloudinit
+              disk:
+                bus: virtio
+          interfaces:
+            - name: default
+              masquerade: {}
+      networks:
+        - name: default
+          pod: {}
+      accessCredentials:
+        - sshPublicKey:
+            source:
+              secret:
+                secretName: demo-ssh-key
+            propagationMethod:
+              noCloud: {}
+      volumes:
+        - name: containerdisk
+          containerDisk:
+            image: quay.io/containerdisks/fedora:44-1.7
+        - name: cloudinit
+          cloudInitNoCloud:
+            userData: |
+              #cloud-config
+              hostname: vm-live
+              write_files:
+                - path: /etc/motd
+                  content: |
+                    Texas Linux Fest 2026 - created live with kubectl apply
+```
+
+| Part | What it does |
+|---|---|
+| `kind: VirtualMachine`, `runStrategy: Always` | A VM definition that should always be running |
+| `domain.cpu`, `resources.requests.memory` | 1 vCPU and 2 GiB of RAM; Kubernetes uses the memory as the Pod request when it schedules the VM |
+| `devices.disks` and `volumes` | Two disks: the OS disk from a container image (`containerDisk`) and a small cloud-init disk |
+| `interfaces` and `networks` | One NIC on the Pod network with `masquerade`: the VM uses the Pod IP |
+| `accessCredentials` | KubeVirt copies your public key from the `demo-ssh-key` Secret into the guest through cloud-init |
+| `cloudInitNoCloud.userData` | First-boot configuration: hostname and a login message |
+
+Apply it and watch it start:
 
 ```bash
 cd ~/txlf/ansible
-cat manifests/01-vm-live.yaml
 kubectl apply -f manifests/01-vm-live.yaml
 kubectl get vm,vmi -n demo-vms vm-live -w
 ```

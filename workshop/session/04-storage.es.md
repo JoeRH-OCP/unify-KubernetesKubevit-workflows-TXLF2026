@@ -34,9 +34,97 @@ kubectl get storageprofile ocs-external-storagecluster-ceph-rbd -o jsonpath='{.s
 
 ## Clona una VM nueva
 
+Este es `manifests/02-vm-clone-live.yaml`. Es el mismo tipo de VM, pero su disco es un clon de `golden-image`:
+
+```yaml
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: vm-clone-live
+  namespace: demo-vms
+  labels:
+    app.kubernetes.io/part-of: txlf-2026
+    app.kubernetes.io/component: clone
+spec:
+  runStrategy: Always
+  dataVolumeTemplates:
+    - metadata:
+        name: vm-clone-live-rootdisk
+        labels:
+          app.kubernetes.io/part-of: txlf-2026
+      spec:
+        source:
+          pvc:
+            namespace: demo-vms
+            name: golden-image
+        storage:
+          storageClassName: ocs-external-storagecluster-ceph-rbd
+          volumeMode: Block
+          accessModes:
+            - ReadWriteMany
+          resources:
+            requests:
+              storage: 10Gi
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: txlf-2026
+        app.kubernetes.io/component: clone
+    spec:
+      domain:
+        cpu:
+          cores: 1
+          sockets: 1
+          threads: 1
+        # kubevirt-manager reads cpu cores/sockets/threads and resources.requests.memory
+        resources:
+          requests:
+            memory: 2Gi
+        devices:
+          disks:
+            - name: rootdisk
+              disk:
+                bus: virtio
+            - name: cloudinit
+              disk:
+                bus: virtio
+          interfaces:
+            - name: default
+              masquerade: {}
+      networks:
+        - name: default
+          pod: {}
+      evictionStrategy: LiveMigrate
+      accessCredentials:
+        - sshPublicKey:
+            source:
+              secret:
+                secretName: demo-ssh-key
+            propagationMethod:
+              noCloud: {}
+      volumes:
+        - name: rootdisk
+          dataVolume:
+            name: vm-clone-live-rootdisk
+        - name: cloudinit
+          cloudInitNoCloud:
+            userData: |
+              #cloud-config
+              hostname: vm-clone-live
+```
+
+| Parte | Qué hace |
+|---|---|
+| `dataVolumeTemplates` | Crea el disco propio de la VM, `vm-clone-live-rootdisk`, clonando el PVC `golden-image` |
+| `storage` | StorageClass explícita, modo `Block`, `ReadWriteMany`, 10Gi (al menos el tamaño del origen) |
+| `volumes.dataVolume` | La VM arranca desde ese disco clonado |
+| `evictionStrategy: LiveMigrate` | Si su nodo se drena, la VM migra en lugar de detenerse (Módulo 6) |
+| `accessCredentials`, `cloudInitNoCloud` | Igual que en `vm-live`: tu llave SSH y un hostname |
+
+Aplícalo y observa el clon:
+
 ```bash
 cd ~/txlf/ansible
-cat manifests/02-vm-clone-live.yaml
 kubectl apply -f manifests/02-vm-clone-live.yaml
 kubectl get dv -n demo-vms vm-clone-live-rootdisk -w
 ```
