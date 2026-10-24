@@ -35,7 +35,7 @@ kubectl get storageprofile ocs-external-storagecluster-ceph-rbd -o jsonpath='{.s
 ## Clone a new VM
 
 ```bash
-cd ~/txlf
+cd ~/txlf/ansible
 cat manifests/02-vm-clone-live.yaml
 kubectl apply -f manifests/02-vm-clone-live.yaml
 kubectl get dv -n demo-vms vm-clone-live-rootdisk -w

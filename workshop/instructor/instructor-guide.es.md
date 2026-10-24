@@ -63,6 +63,8 @@ scripts/run-clusters.sh verify.yml --skip-login
 
 `--skip-login` reutiliza los tokens del último inicio de sesión; duran unas 24 horas. Quítalo para iniciar sesión de nuevo. Todos los clústeres deben mostrar 5 VMs en `Running`.
 
+En un cluster de participante, abre la terminal web y corre el Módulo 1 completo. Revisa que ahí existan `git` y `ssh-keygen` (`git --version; ssh-keygen -V`); si falta `git`, el Módulo 1 tiene una alternativa con `curl | tar`.
+
 Tu propia laptop, para el proyector:
 - Consola con sesión iniciada y el banner visible.
 - La página de inicio de `vm-web`, mostrando un nodo.
@@ -73,7 +75,7 @@ Tu propia laptop, para el proyector:
 
 | Reloj | Módulo | Qué haces | Checkpoint antes de avanzar |
 |---|---|---|---|
-| 0:00 | 1. Accede desde tu navegador | Muestra la tarjeta, la terminal web y la descarga de `virtctl` | Todos ven 5 VMs en `Running` |
+| 0:00 | 1. Accede desde tu navegador | Muestra la tarjeta, la terminal web, el clon del repo y `virtctl` en la terminal web (nada en las laptops) | Todos ven 5 VMs en `Running` |
 | 0:05 | 2. Cómo funciona KubeVirt | La tabla de "miedos", VM / VMI / virt-launcher; escribe `kubectl apply` en vivo; casos de uso | `vm-live` en Running |
 | 0:20 | 3. Ciclo de vida de la VM | SSH, consola serial, stop/start/restart, `runStrategy` | El SSH a `vm-live` funciona |
 | 0:30 | 4. Almacenamiento | `golden-image`, Block/RWX, clon desde snapshot | DataVolume de `vm-clone-live` en `Succeeded` |

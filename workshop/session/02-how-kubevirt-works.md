@@ -45,7 +45,7 @@ kubectl get pods -n kubevirt
 The manifest is plain YAML, like any other workload:
 
 ```bash
-cd ~/txlf
+cd ~/txlf/ansible
 cat manifests/01-vm-live.yaml
 kubectl apply -f manifests/01-vm-live.yaml
 kubectl get vm,vmi -n demo-vms vm-live -w

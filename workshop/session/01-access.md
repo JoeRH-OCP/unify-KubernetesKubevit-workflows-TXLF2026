@@ -21,9 +21,28 @@ Your handout card has:
 
 The terminal runs in a Pod in your cluster, so all commands in this workshop work the same from Windows, macOS, Linux or a Chromebook.
 
-## Get virtctl
+## Get the lab files
 
-`virtctl` is the KubeVirt command line tool (console, SSH, start, stop, migrate). It must match the KubeVirt version in the cluster (v1.9.1):
+Run everything from here on **in the web terminal**: it is a Linux container in your cluster, so nothing is installed on your laptop.
+
+Clone the workshop repository; all the manifests you need are in `ansible/manifests`:
+
+```bash
+git clone https://github.com/JoeRH-OCP/unify-KubernetesKubevit-workflows-TXLF2026.git ~/txlf
+cd ~/txlf/ansible
+ls manifests
+```
+
+No `git` in your terminal? Download the same files as an archive instead:
+
+```bash
+mkdir -p ~/txlf && curl -fsSL https://github.com/JoeRH-OCP/unify-KubernetesKubevit-workflows-TXLF2026/archive/refs/heads/main.tar.gz | tar -xz --strip-components=1 -C ~/txlf
+cd ~/txlf/ansible
+```
+
+## Get virtctl (in the web terminal)
+
+`virtctl` is the KubeVirt command line tool (console, SSH, start, stop, migrate). It must match the KubeVirt version in the cluster (v1.9.1). This downloads it into the web terminal, not onto your laptop:
 
 ```bash
 mkdir -p ~/bin && export PATH=~/bin:$PATH
@@ -32,19 +51,14 @@ chmod +x ~/bin/virtctl
 virtctl version
 ```
 
-## Get the lab files and an SSH key
+## Create your SSH key
 
 ```bash
-mkdir -p ~/txlf/manifests && cd ~/txlf
-for f in 00-ssh-key.sh 01-vm-live.yaml 02-vm-clone-live.yaml; do
-  curl -fsSL -o manifests/$f https://raw.githubusercontent.com/JoeRH-OCP/unify-KubernetesKubevit-workflows-TXLF2026/main/ansible/manifests/$f
-done
-chmod +x manifests/00-ssh-key.sh
 test -f ~/.ssh/id_ed25519 || ssh-keygen -t ed25519 -N '' -f ~/.ssh/id_ed25519
 ./manifests/00-ssh-key.sh
 ```
 
-The last command stores your public key in a Secret. KubeVirt injects it into the VMs you create, so `virtctl ssh` works without passwords.
+The script stores your public key in a Secret. KubeVirt injects it into the VMs you create, so `virtctl ssh` works without passwords.
 
 ## Find your URLs
 
@@ -57,6 +71,23 @@ Open both in new browser tabs:
 - `https://vm-web.apps...`: a web page served from inside a VM. It shows which Kubernetes node runs the VM and refreshes every 2 seconds. Keep it open; you will watch it in Module 6.
 - `https://kubevirt-manager.apps...`: a web UI for KubeVirt. Log in with `admin` and your password.
 
+## Optional: use your own laptop
+
+You do not need this for the workshop. If you prefer your own terminal, install `oc` (or `kubectl`) and the `virtctl` build for your OS from the [KubeVirt v1.9.1 release](https://github.com/kubevirt/kubevirt/releases/tag/v1.9.1):
+
+| Your OS | virtctl file |
+|---|---|
+| macOS, Apple silicon | `virtctl-v1.9.1-darwin-arm64` |
+| macOS, Intel | `virtctl-v1.9.1-darwin-amd64` |
+| Linux | `virtctl-v1.9.1-linux-amd64` |
+| Windows | `virtctl-v1.9.1-windows-amd64.exe` |
+
+Then log in with the API URL from the console (user menu, **Copy login command**), clone the repository, and run the same commands:
+
+```bash
+oc login --server=https://api.<cluster>.<domain>:6443 -u admin
+```
+
 ## Checkpoint
 
 ```bash
@@ -65,4 +96,4 @@ kubectl get vm -n demo-vms
 
 You should see `vm-quick`, `vm-web` and `vm-clone-1` to `vm-clone-3`, all `Running`. If not, raise your hand now: the next modules depend on it.
 
-> The web terminal resets after a period of inactivity. If `virtctl` disappears, run the "Get virtctl" commands again.
+> The web terminal resets after a period of inactivity. If `virtctl` disappears, run the "Get virtctl (in the web terminal)" commands again.
