@@ -1,4 +1,4 @@
-# Lab 4 — Capstone: deploy a functional Linux VM
+# Lab 4 (capstone): deploy a functional Linux VM
 
 **Suggested time:** 90–120 minutes  
 **Success condition:** A persistent Linux VM reaches Running, cloud-init installs and starts an HTTP server, a Kubernetes Service selects the VM, and `curl` returns the expected page.

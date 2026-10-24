@@ -2,7 +2,9 @@
 
 ## Entorno recomendado
 
-Usa un clúster OpenShift preparado con OpenShift Virtualization compatible y saludable. También sirve Kubernetes upstream con versiones compatibles de KubeVirt y CDI. No mezcles las instrucciones de instalación upstream con el operador de OpenShift Virtualization.
+Para la sesión de 90 minutos de TXLF 2026, cada participante (o pareja) recibe un clúster OpenShift dedicado que el instructor prepara con `ansible/site.yml`: KubeVirt upstream v1.9.1, CDI v1.66.1, almacenamiento Ceph RBD, kubevirt-manager y las VMs de demo. Consulta la [guía del instructor](instructor/instructor-guide.es.md).
+
+Para estudio a tu propio ritmo, también sirve un clúster OpenShift preinstalado con OpenShift Virtualization compatible y saludable, o Kubernetes upstream con versiones compatibles de KubeVirt y CDI. No mezcles las instrucciones de instalación upstream con el operador de OpenShift Virtualization.
 
 ## Lista de preparación del clúster
 

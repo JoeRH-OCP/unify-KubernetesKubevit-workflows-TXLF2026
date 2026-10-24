@@ -1,9 +1,9 @@
-# Lab 2 — Kubernetes networking and storage
+# Lab 2: Kubernetes networking and storage
 
 **Suggested time:** 3–4 hours across Modules 3 and 4  
 **Goal:** Trace traffic through a Service, observe policy behavior, and prove that a PVC survives Pod replacement.
 
-## Part A — Networking
+## Part A: Networking
 
 Use the `web` Deployment and Service from Lab 1.
 
@@ -54,7 +54,7 @@ kubectl -n workshop-basics exec client -- curl -m 3 -sS http://web:8080
 
 **Checkpoint:** Explain why a policy may have no effect on a cluster whose network plugin does not enforce it.
 
-## Part B — Persistent storage
+## Part B: Persistent storage
 
 Create a PVC using the cluster's default StorageClass. If there is no default class, add `storageClassName: CHANGEME` to the claim.
 

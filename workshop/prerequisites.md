@@ -2,9 +2,9 @@
 
 ## Recommended environment
 
-Use a pre-installed OpenShift cluster with a compatible, healthy OpenShift Virtualization installation. This gives the workshop a consistent path for operator lifecycle, storage, networking, VM console access, and troubleshooting.
+For the 90-minute TXLF 2026 session, each participant (or pair) gets a dedicated OpenShift cluster prepared by the instructor with `ansible/site.yml`: upstream KubeVirt v1.9.1, CDI v1.66.1, Ceph RBD storage, kubevirt-manager and the demo VMs. See the [instructor guide](instructor/instructor-guide.md).
 
-A supported upstream Kubernetes cluster with KubeVirt and CDI is also suitable. Follow the upstream installation guides for the exact Kubernetes and KubeVirt versions. Avoid mixing the OpenShift Virtualization operator with upstream KubeVirt installation instructions.
+For self-paced use, a pre-installed OpenShift cluster with a healthy OpenShift Virtualization installation also works. A supported upstream Kubernetes cluster with KubeVirt and CDI is also suitable. Follow the upstream installation guides for the exact Kubernetes and KubeVirt versions. Avoid mixing the OpenShift Virtualization operator with upstream KubeVirt installation instructions.
 
 ## Cluster readiness checklist
 

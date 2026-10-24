@@ -1,9 +1,9 @@
-# Laboratorio 2 — Redes y almacenamiento de Kubernetes
+# Laboratorio 2: Redes y almacenamiento de Kubernetes
 
 **Tiempo sugerido:** 3–4 horas para los módulos 3 y 4  
 **Objetivo:** seguir el tráfico a través de un Service, observar políticas de red y comprobar que un PVC sobrevive al reemplazo de un Pod.
 
-## Parte A — Redes
+## Parte A: Redes
 
 Usa el Deployment y Service `web` del Laboratorio 1.
 
@@ -24,7 +24,7 @@ Primero confirma que el CNI aplica políticas. Crea una NetworkPolicy que selecc
 
 **Checkpoint:** explica por qué una política no tiene efecto si el plugin de red no la implementa.
 
-## Parte B — Almacenamiento persistente
+## Parte B: Almacenamiento persistente
 
 Crea un PVC con la StorageClass predeterminada (o indica `storageClassName: CHANGEME`). Solicita 1Gi en modo `ReadWriteOnce`. Crea un Pod `storage-writer` que monte el PVC en `/data` y escriba un archivo:
 

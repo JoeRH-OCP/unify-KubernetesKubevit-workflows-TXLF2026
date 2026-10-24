@@ -1,4 +1,4 @@
-# Laboratorio final — Desplegar una VM Linux funcional
+# Laboratorio final: Desplegar una VM Linux funcional
 
 **Tiempo sugerido:** 90–120 minutos  
 **Condición de éxito:** la VM Linux persistente llega a Running, cloud-init instala e inicia un servidor HTTP, un Service de Kubernetes selecciona la VM y `curl` devuelve la página esperada.

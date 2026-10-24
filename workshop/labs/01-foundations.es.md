@@ -1,9 +1,9 @@
-# Laboratorio 1 — Fundamentos de contenedores y Kubernetes
+# Laboratorio 1: Fundamentos de contenedores y Kubernetes
 
 **Tiempo sugerido:** 3.5–4.5 horas para los módulos 1 y 2  
 **Objetivo:** construir y ejecutar una imagen OCI, y después desplegar y exponer una aplicación en Kubernetes.
 
-## Parte A — Ciclo de vida del contenedor
+## Parte A: Ciclo de vida del contenedor
 
 Un contenedor es un proceso aislado que comparte el kernel del host; una VM ejecuta un sistema operativo guest. Las imágenes OCI son artefactos por capas almacenados en registries. CRI-O y containerd son runtimes de nodos Kubernetes; Podman y Docker son herramientas comunes para desarrollo.
 
@@ -45,7 +45,7 @@ podman login CHANGEME_REGISTRY
 podman push "$IMAGE"
 ```
 
-## Parte B — Objetos de Kubernetes
+## Parte B: Objetos de Kubernetes
 
 Inspecciona el clúster:
 

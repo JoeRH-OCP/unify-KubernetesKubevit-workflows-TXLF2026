@@ -1,9 +1,9 @@
-# Lab 1 — Container and Kubernetes foundations
+# Lab 1: Container and Kubernetes foundations
 
 **Suggested time:** 3.5–4.5 hours across Modules 1 and 2  
 **Goal:** Build and run an OCI image, then deploy and expose a small application on Kubernetes.
 
-## Part A — Container lifecycle
+## Part A: Container lifecycle
 
 ### Concepts
 
@@ -52,7 +52,7 @@ podman login CHANGEME_REGISTRY
 podman push "$IMAGE"
 ```
 
-## Part B — Kubernetes objects
+## Part B: Kubernetes objects
 
 ### Inspect the cluster
 

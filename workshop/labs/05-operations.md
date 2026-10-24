@@ -1,4 +1,4 @@
-# Lab 5 — Operations, troubleshooting, and next steps
+# Lab 5: Operations, troubleshooting, and next steps
 
 **Suggested time:** 60–90 minutes  
 **Goal:** Use Kubernetes-native tools to inspect VM health, resource allocation, logs, and common failure states.
@@ -14,7 +14,16 @@ kubectl -n kubevirt-workshop describe vmi final-functional-vm
 kubectl -n kubevirt-workshop get events --sort-by=.lastTimestamp
 ```
 
-On OpenShift, inspect the virtualization dashboards and monitoring views available in the cluster. On upstream Kubernetes, use the cluster's configured metrics and logging stack.
+KubeVirt exports Prometheus metrics for every VM. On OpenShift, open **Observe, Metrics** and try:
+
+```text
+rate(kubevirt_vmi_vcpu_seconds_total{namespace="demo-vms"}[2m])
+kubevirt_vmi_memory_domain_bytes{namespace="demo-vms"}
+rate(kubevirt_vmi_network_receive_bytes_total{namespace="demo-vms"}[2m])
+rate(kubevirt_vmi_storage_write_traffic_bytes_total{namespace="demo-vms"}[2m])
+```
+
+The OpenShift Virtualization dashboards only exist when OpenShift Virtualization is installed. With upstream KubeVirt, kubevirt-manager shows the same metrics as graphs on each VM page (CPU, memory, network, storage). On upstream Kubernetes, point any Prometheus at the `kubevirt` namespace ServiceMonitor.
 
 Discuss:
 
