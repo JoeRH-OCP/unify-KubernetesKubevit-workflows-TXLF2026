@@ -66,4 +66,4 @@
 - name: Note cluster-wide proxy
   ansible.builtin.set_fact:
     pf_warnings: "{{ pf_warnings + ['Cluster-wide proxy is set (' ~ (pf_proxy.httpsProxy | default(pf_proxy.httpProxy)) ~ '): CDI importProxy will be configured from it.'] }}"
-  when: (pf_proxy.httpProxy | default('')) or (pf_proxy.httpsProxy | default(''))
+  when: (pf_proxy.httpProxy | default('') | length > 0) or (pf_proxy.httpsProxy | default('') | length > 0)
