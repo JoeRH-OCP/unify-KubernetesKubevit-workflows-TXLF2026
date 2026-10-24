@@ -45,3 +45,4 @@ footer{padding:22px 38px;background:#eef1f8;color:#4a5466;font-size:13px;border-
 @media(max-width:600px){.step-button{max-width:none;flex-basis:100%;text-align:left!important}.module-grid{grid-template-columns:1fr}.brand small{font-size:9px}}
 @media print{header,#sidebar,aside.toc,.toolbar,.workshop-pagination{display:none}.workspace{margin:0}.content-layout{padding:0}main{max-width:none}.hero{break-inside:avoid}pre{white-space:pre-wrap}table{font-size:10px}footer{display:none}}
 .shot{display:block;max-width:100%;height:auto;margin:16px 0 22px;border:1px solid var(--border);border-top:3px solid var(--accent);border-radius:6px;box-shadow:0 4px 14px rgba(0,38,120,.12)}
+.deck-nav{display:flex;align-items:center;gap:18px}.deck-nav a.lang-flag{display:flex;align-items:center}.deck-nav .flag{display:block;border-radius:2px;box-shadow:0 0 0 1px rgba(255,255,255,.55)}.deck-nav a.lang-flag:hover .flag{box-shadow:0 0 0 2px #ff6600}
