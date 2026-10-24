@@ -35,6 +35,53 @@
   loop_control:
     label: "{{ item.metadata.namespace }}/{{ item.metadata.name }}"
 
+# The boot-image DataImportCrons/DataSources (and the DataVolumes they create)
+# are owned by HCO/SSP: if we delete them, HCO recreates them right away and a
+# wait never ends. So first tell HCO to stop importing boot images, then leave
+# everything HCO/CDI-managed to the HyperConverged removal and only delete
+# user-created CDI objects here.
+- name: Stop HCO from importing boot images (common and custom templates)
+  kubernetes.core.k8s:
+    state: patched
+    api_version: hco.kubevirt.io/v1beta1
+    kind: HyperConverged
+    namespace: "{{ item.metadata.namespace }}"
+    name: "{{ item.metadata.name }}"
+    merge_type: merge
+    definition:
+      spec:
+        enableCommonBootImageImport: false
+        dataImportCronTemplates: []
+  loop: "{{ pf_hco.resources | default([]) }}"
+  loop_control:
+    label: "{{ item.metadata.namespace }}/{{ item.metadata.name }}"
+
+# CDI is still running here, so it can clean the crons and their images
+# (finalizers included) before HCO and CDI go away.
+- name: Wait until CDI removed the boot-image DataImportCrons
+  kubernetes.core.k8s_info:
+    api_version: cdi.kubevirt.io/v1beta1
+    kind: DataImportCron
+    namespace: "{{ cnv_os_images_namespace }}"
+  register: cnv_boot_crons
+  until: cnv_boot_crons.resources | default([]) | length == 0
+  retries: 30
+  delay: 10
+  failed_when: false
+  when:
+    - pf_hco.resources | default([]) | length > 0
+    - not ansible_check_mode
+
+- name: Warn when boot-image crons are still there
+  ansible.builtin.debug:
+    msg: >-
+      {{ cnv_boot_crons.resources | length }} DataImportCron(s) still in {{ cnv_os_images_namespace }}
+      after 5 minutes; continuing. If the namespace deletion hangs later, check their finalizers:
+      kubectl -n {{ cnv_os_images_namespace }} get dataimportcron -o yaml
+  when:
+    - cnv_boot_crons.resources is defined
+    - cnv_boot_crons.resources | length > 0
+
 - name: List DataImportCrons, DataSources and DataVolumes
   kubernetes.core.k8s_info:
     api_version: cdi.kubevirt.io/v1beta1
@@ -42,7 +89,30 @@
   loop: [DataImportCron, DataSource, DataVolume]
   register: cnv_cdi_objs
 
-- name: Delete DataImportCrons, DataSources and DataVolumes
+- name: Select user-created CDI objects (skip the ones HCO/CDI manage)
+  ansible.builtin.set_fact:
+    cnv_user_cdi_objs: >-
+      {%- set out = [] -%}
+      {%- for o in cnv_cdi_objs.results | map(attribute='resources') | flatten -%}
+      {%-   set owners = o.metadata.ownerReferences | default([], true) | map(attribute='kind') | list -%}
+      {%-   set managed_by = (o.metadata.labels | default({}, true)).get('app.kubernetes.io/managed-by', '') -%}
+      {%-   if o.metadata.namespace != cnv_os_images_namespace
+              and 'DataImportCron' not in owners
+              and 'HyperConverged' not in owners
+              and 'SSP' not in owners
+              and managed_by not in ['hco-operator', 'ssp-operator', 'cdi-controller'] -%}
+      {%-     set _ = out.append(o) -%}
+      {%-   endif -%}
+      {%- endfor -%}
+      {{ out }}
+
+- name: Show what is skipped (removed later with the HyperConverged CR)
+  ansible.builtin.debug:
+    msg: >-
+      Skipping {{ (cnv_cdi_objs.results | map(attribute='resources') | flatten | length) - (cnv_user_cdi_objs | length) }}
+      HCO/CDI-managed object(s) (boot images in {{ cnv_os_images_namespace }}); deleting {{ cnv_user_cdi_objs | length }} user object(s).
+
+- name: Delete user-created DataImportCrons, DataSources and DataVolumes
   kubernetes.core.k8s:
     state: absent
     api_version: cdi.kubevirt.io/v1beta1
@@ -50,7 +120,7 @@
     namespace: "{{ item.metadata.namespace }}"
     name: "{{ item.metadata.name }}"
     wait: true
-    wait_timeout: 600
-  loop: "{{ cnv_cdi_objs.results | map(attribute='resources') | flatten }}"
+    wait_timeout: 300
+  loop: "{{ cnv_user_cdi_objs }}"
   loop_control:
     label: "{{ item.kind }} {{ item.metadata.namespace }}/{{ item.metadata.name }}"
