@@ -83,7 +83,7 @@ Your own laptop, for the projector:
 | 0:30 | 4. Storage | `golden-image`, Block/RWX, snapshot clone | `vm-clone-live` DataVolume `Succeeded` |
 | 0:45 | 5. Networking | Pod IP, Service selector, a container calling the VM, `virtctl expose` | The `curl` container gets `200` |
 | 1:00 | 6. Day-2 operations | Project the landing page during `virtctl migrate`; cordon; snapshot/restore on `vm-web` while they do it on `vm-clone-live`; Observe > Metrics; 1-minute mention of "Day 2 with Ansible" (read only, not run) | Node changed; `/srv/data.txt` restored |
-| 1:20 | 7. Trade-offs and one control plane | One-control-plane table, honest trade-offs, containers or VMs, questions | |
+| 1:20 | 7. Trade-offs: one platform for VMs and containers | One-platform table, honest trade-offs, containers or VMs, questions | |
 
 There is no buffer: the seven modules fill the 90 minutes. If the room is behind, cut the cordon step and the metrics queries in Module 6, and `virtctl expose` in Module 5. Never cut the live migration or the trade-offs: they are what the abstract promises.
 

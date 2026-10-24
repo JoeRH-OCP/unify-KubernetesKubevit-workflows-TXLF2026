@@ -1,4 +1,4 @@
-# Module 7: Trade-offs and one control plane
+# Module 7: Trade-offs: one platform for VMs and containers
 
 **Time:** 10 minutes (includes questions)
 
@@ -12,7 +12,7 @@
 | 5. Networking | VMs get Pod IPs, sit behind Services and Ingress, and talk to containers by DNS |
 | 6. Day-2 operations | Live migration, node maintenance, snapshot and restore, metrics and events |
 
-## One control plane
+## One platform
 
 | Task | Separate stacks | One platform with KubeVirt |
 |---|---|---|

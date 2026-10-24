@@ -83,7 +83,7 @@ Tu propia laptop, para el proyector:
 | 0:30 | 4. Almacenamiento | `golden-image`, Block/RWX, clon desde snapshot | DataVolume de `vm-clone-live` en `Succeeded` |
 | 0:45 | 5. Redes | IP del Pod, selector del Service, un contenedor llamando a la VM, `virtctl expose` | El contenedor `curl` recibe `200` |
 | 1:00 | 6. Operaciones de día 2 | Proyecta la landing durante `virtctl migrate`; cordon; snapshot/restore en `vm-web` mientras ellos lo hacen en `vm-clone-live`; Observe > Metrics; menciona en 1 minuto "Día 2 con Ansible" (solo lectura, no se ejecuta) | El nodo cambió; `/srv/data.txt` restaurado |
-| 1:20 | 7. Trade-offs y un solo plano de control | Tabla del plano de control, trade-offs honestos, ¿contenedores o VMs?, preguntas | |
+| 1:20 | 7. Trade-offs: una plataforma para VMs y contenedores | Tabla de una sola plataforma, trade-offs honestos, ¿contenedores o VMs?, preguntas | |
 
 No hay margen: los siete módulos ocupan los 90 minutos. Si el grupo va atrasado, recorta el paso de cordon y las consultas de métricas del Módulo 6, y el `virtctl expose` del Módulo 5. Nunca recortes la migración en vivo ni los trade-offs: es lo que promete el abstract.
 

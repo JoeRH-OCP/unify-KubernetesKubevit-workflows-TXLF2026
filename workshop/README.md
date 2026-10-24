@@ -26,7 +26,7 @@ Participants understand how KubeVirt works and what it solves; manage the VM lif
 | 0:30 | [4. Storage](session/04-storage.md) | 15 min | A VM cloned from a golden image in seconds |
 | 0:45 | [5. Networking](session/05-networking.md) | 15 min | A container talks to a VM through a Service |
 | 1:00 | [6. Day-2 operations](session/06-day2-operations.md) | 20 min | Live migration, node maintenance, snapshot/restore, metrics |
-| 1:20 | [7. Trade-offs and one control plane](session/07-tradeoffs-and-wrap-up.md) | 10 min | Trade-offs, containers or VMs, questions |
+| 1:20 | [7. Trade-offs: one platform for VMs and containers](session/07-tradeoffs-and-wrap-up.md) | 10 min | Trade-offs, containers or VMs, questions |
 
 Each module has a Spanish version (`*.es.md`) next to it. The modules fill the 90 minutes; there is no buffer, so see the instructor guide for what to cut if the room is behind.
 

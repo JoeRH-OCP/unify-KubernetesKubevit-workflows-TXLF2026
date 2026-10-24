@@ -1,4 +1,4 @@
-# Módulo 7: Trade-offs y un solo plano de control
+# Módulo 7: Trade-offs: una plataforma para VMs y contenedores
 
 **Tiempo:** 10 minutos (incluye preguntas)
 
@@ -12,7 +12,7 @@
 | 5. Redes | Las VMs obtienen IPs de Pod, viven detrás de Services e Ingress y hablan con contenedores por DNS |
 | 6. Operaciones de día 2 | Migración en vivo, mantenimiento de nodos, snapshot y restauración, métricas y eventos |
 
-## Un solo plano de control
+## Una sola plataforma
 
 | Tarea | Stacks separados | Una plataforma con KubeVirt |
 |---|---|---|
