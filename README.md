@@ -9,11 +9,7 @@
 
 A 90-minute hands-on workshop at Texas Linux Fest 2026. KubeVirt lets organizations run virtual machines and containers side by side on Kubernetes. This session removes the confusion and fear around it: how KubeVirt works, what it solves, VM lifecycle, networking, storage, day-2 operations, and the practical trade-offs of one control plane for legacy and modern applications.
 
-<<<<<<< HEAD
-**Duration:** 90 minutes · **Audience:** Linux administrators and anyone curious about VMs on Kubernetes · **Format:** bring a laptop; all exercises run in the browser, one prepared cluster per participant
-=======
 **Duration:** One 2-hour session (Texas Linux Fest 2026) or modular sessions · **Audience:** Developers, Linux system administrators, and platform engineers · **Format:** Short theory segments with guided labs
->>>>>>> main
 
 ## Workshop material
 
