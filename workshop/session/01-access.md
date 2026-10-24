@@ -3,15 +3,17 @@
 **Time:** 5 minutes
 **Goal:** Log in to your own OpenShift cluster and open a terminal, all inside the browser. Nothing to install, any operating system works.
 
-Each person or pair has a dedicated cluster that the instructor prepared before the session. It already runs KubeVirt and CDI, a Fedora golden image, five demo VMs and the kubevirt-manager UI. You have cluster-admin, so nothing you do affects other participants.
+Each person or pair gets a dedicated cluster that the instructor prepared before the session. It already runs KubeVirt and CDI, a Fedora golden image, five demo VMs and the kubevirt-manager UI. You have cluster-admin, so nothing you do affects other participants.
 
-## What you received
+## Pick your lab
 
-Your handout card has:
+The instructor shares a Google Sheet with one row per lab cluster (the link is on the screen and in the session chat). Each row has:
 
 - **Console URL:** `https://console-openshift-console.apps.<cluster>.<domain>`
 - **User:** `admin`
-- **Password:** a random password for your cluster (kubevirt-manager uses the same one)
+- **Password:** a random password for that cluster (kubevirt-manager uses the same one)
+
+Pick a row that nobody has taken and write your name in it, in the column the instructor points out. That cluster is yours for the whole session; do not use a row with someone else's name.
 
 ## Open the web terminal
 
@@ -63,7 +65,7 @@ The script stores your public key in a Secret. KubeVirt injects it into the VMs 
 ## Find your URLs
 
 ```bash
-kubectl get ingress -A -o custom-columns=NAMESPACE:.metadata.namespace,HOST:.spec.rules[0].host
+kubectl get ingress -A -o 'custom-columns=NAMESPACE:.metadata.namespace,HOST:.spec.rules[0].host'
 ```
 
 Open both in new browser tabs:
@@ -73,16 +75,26 @@ Open both in new browser tabs:
 
 ## Optional: use your own laptop
 
-You do not need this for the workshop. If you prefer your own terminal, install `oc` (or `kubectl`) and the `virtctl` build for your OS from the [KubeVirt v1.9.1 release](https://github.com/kubevirt/kubevirt/releases/tag/v1.9.1):
+You do not need this: the web terminal has everything. If you prefer your own terminal, you need `oc` (or `kubectl`), `virtctl` v1.9.1 and `git`. Get `oc` from your cluster's console: **?** (help menu) > **Command Line Tools**. The lab commands are bash; zsh on macOS works too.
 
-| Your OS | virtctl file |
-|---|---|
-| macOS, Apple silicon | `virtctl-v1.9.1-darwin-arm64` |
-| macOS, Intel | `virtctl-v1.9.1-darwin-amd64` |
-| Linux | `virtctl-v1.9.1-linux-amd64` |
-| Windows | `virtctl-v1.9.1-windows-amd64.exe` |
+macOS or Linux:
 
-Then log in with the API URL from the console (user menu, **Copy login command**), clone the repository, and run the same commands:
+```bash
+OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+curl -fsSL -o virtctl "https://github.com/kubevirt/kubevirt/releases/download/v1.9.1/virtctl-v1.9.1-${OS}-${ARCH}"
+chmod +x virtctl && sudo mv virtctl /usr/local/bin/
+virtctl version --client
+```
+
+Windows: the lab commands use bash features (pipes, `$(...)`, heredocs), so run them in WSL (Ubuntu) and follow the Linux steps above. If you only want `virtctl` in PowerShell (for consoles, SSH, start and stop):
+
+```powershell
+Invoke-WebRequest -Uri https://github.com/kubevirt/kubevirt/releases/download/v1.9.1/virtctl-v1.9.1-windows-amd64.exe -OutFile virtctl.exe
+.\virtctl.exe version --client
+```
+
+Then log in with the API URL of your cluster (console user menu, **Copy login command**), clone the repository as in "Get the lab files", and run the same commands:
 
 ```bash
 oc login --server=https://api.<cluster>.<domain>:6443 -u admin

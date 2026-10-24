@@ -3,15 +3,17 @@
 **Tiempo:** 5 minutos
 **Objetivo:** Inicia sesión en tu propio cluster de OpenShift y abre una terminal, todo dentro del navegador. No hay nada que instalar y funciona con cualquier sistema operativo.
 
-Cada persona o pareja tiene un cluster dedicado que el instructor preparó antes de la sesión. Ya tiene KubeVirt y CDI, una golden image de Fedora, cinco VMs de demo y la interfaz kubevirt-manager. Tienes cluster-admin, así que nada de lo que hagas afecta a otros participantes.
+Cada persona o pareja recibe un cluster dedicado que el instructor preparó antes de la sesión. Ya tiene KubeVirt y CDI, una golden image de Fedora, cinco VMs de demo y la interfaz kubevirt-manager. Tienes cluster-admin, así que nada de lo que hagas afecta a otros participantes.
 
-## Lo que recibiste
+## Elige tu lab
 
-Tu tarjeta incluye:
+El instructor comparte una hoja de Google Sheets con un renglón por cada cluster de laboratorio (el link está en la pantalla y en el chat de la sesión). Cada renglón tiene:
 
 - **URL de la consola:** `https://console-openshift-console.apps.<cluster>.<domain>`
 - **Usuario:** `admin`
-- **Contraseña:** una contraseña aleatoria para tu cluster (kubevirt-manager usa la misma)
+- **Contraseña:** una contraseña aleatoria para ese cluster (kubevirt-manager usa la misma)
+
+Elige un renglón que nadie haya tomado y escribe tu nombre en él, en la columna que indique el instructor. Ese cluster es tuyo durante toda la sesión; no uses un renglón que ya tenga el nombre de otra persona.
 
 ## Abre la terminal web
 
@@ -63,7 +65,7 @@ El script guarda tu llave pública en un Secret. KubeVirt la inyecta en las VMs 
 ## Encuentra tus URLs
 
 ```bash
-kubectl get ingress -A -o custom-columns=NAMESPACE:.metadata.namespace,HOST:.spec.rules[0].host
+kubectl get ingress -A -o 'custom-columns=NAMESPACE:.metadata.namespace,HOST:.spec.rules[0].host'
 ```
 
 Abre ambas en pestañas nuevas del navegador:
@@ -73,16 +75,26 @@ Abre ambas en pestañas nuevas del navegador:
 
 ## Opcional: usa tu propia laptop
 
-No lo necesitas para el workshop. Si prefieres tu propia terminal, instala `oc` (o `kubectl`) y el `virtctl` para tu sistema operativo desde el [release v1.9.1 de KubeVirt](https://github.com/kubevirt/kubevirt/releases/tag/v1.9.1):
+No lo necesitas: la terminal web tiene todo. Si prefieres tu propia terminal, necesitas `oc` (o `kubectl`), `virtctl` v1.9.1 y `git`. Obtén `oc` desde la consola de tu cluster: **?** (menú de ayuda) > **Command Line Tools**. Los comandos del laboratorio son de bash; zsh en macOS también funciona.
 
-| Tu sistema operativo | Archivo de virtctl |
-|---|---|
-| macOS, Apple silicon | `virtctl-v1.9.1-darwin-arm64` |
-| macOS, Intel | `virtctl-v1.9.1-darwin-amd64` |
-| Linux | `virtctl-v1.9.1-linux-amd64` |
-| Windows | `virtctl-v1.9.1-windows-amd64.exe` |
+macOS o Linux:
 
-Después inicia sesión con la URL de la API que muestra la consola (menú de usuario, **Copy login command**), clona el repositorio y ejecuta los mismos comandos:
+```bash
+OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+curl -fsSL -o virtctl "https://github.com/kubevirt/kubevirt/releases/download/v1.9.1/virtctl-v1.9.1-${OS}-${ARCH}"
+chmod +x virtctl && sudo mv virtctl /usr/local/bin/
+virtctl version --client
+```
+
+Windows: los comandos del laboratorio usan funciones de bash (pipes, `$(...)`, heredocs), así que córrelos en WSL (Ubuntu) y sigue los pasos de Linux de arriba. Si solo quieres `virtctl` en PowerShell (para consolas, SSH, start y stop):
+
+```powershell
+Invoke-WebRequest -Uri https://github.com/kubevirt/kubevirt/releases/download/v1.9.1/virtctl-v1.9.1-windows-amd64.exe -OutFile virtctl.exe
+.\virtctl.exe version --client
+```
+
+Después inicia sesión con la URL de la API de tu cluster (menú de usuario de la consola, **Copy login command**), clona el repositorio como en "Obtén los archivos del laboratorio" y ejecuta los mismos comandos:
 
 ```bash
 oc login --server=https://api.<cluster>.<domain>:6443 -u admin

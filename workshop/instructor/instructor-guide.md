@@ -7,7 +7,7 @@ This guide covers preparing one cluster per participant (or pair) with the autom
 | When | What | Time |
 |---|---|---|
 | A week before | Order the clusters, fill `clusters.vault.yml`, run preflight on all of them | 1 h |
-| The day before | Run `site.yml` on all clusters, check the summary, print the handout cards | 1 to 2 h (unattended) |
+| The day before | Run `site.yml` on all clusters, check the summary, confirm the participant sheet matches the clusters | 1 to 2 h (unattended) |
 | One hour before | Run `reset.yml` + `demo.yml`, then `verify.yml`; open your own demo tabs | 20 min |
 | Between sessions | `reset.yml` + `demo.yml` on every cluster | 15 min |
 | After the event | `teardown.yml` or return the clusters | 30 min |
@@ -23,7 +23,7 @@ ansible-vault encrypt clusters.vault.yml
 ansible-vault edit clusters.vault.yml
 ```
 
-Use one entry per cluster, with a short name that matches the handout (for example `p01` to `p20`). Then run, from `ansible/`:
+Use one entry per cluster, with a short name that matches the "Lab" column of the participant sheet (for example `lab01` to `lab20`). Then run, from `ansible/`:
 
 ```bash
 scripts/run-clusters.sh preflight.yml
@@ -39,19 +39,21 @@ This removes OpenShift Virtualization and MTV, installs upstream KubeVirt and CD
 
 To keep OpenShift Virtualization on some clusters instead, set `vars: {virt_mode: cnv}` for them in `clusters.vault.yml`. The participant modules work the same; only the KubeVirt version shown changes.
 
-## 2. Handout card per participant
+## 2. The participant sheet
 
-Print one card per cluster:
+The delivery team creates a Google Sheet with one row per lab cluster (link: TBD). Participants pick a free row and write their name in it during Module 1, so keep the columns simple:
 
-| Field | Where it comes from |
-|---|---|
-| Console URL | `console_url` in `clusters.vault.yml` |
-| User / password | `admin` / the cluster password (also valid for kubevirt-manager) |
-| Landing page | `https://vm-web.apps.<cluster domain>` |
-| kubevirt-manager | `https://kubevirt-manager.apps.<cluster domain>` |
-| Workshop site | the GitHub Pages URL of this repository |
+| Column | Content | Filled by |
+|---|---|---|
+| Lab | `lab01` to `lab20`, same names as in `clusters.vault.yml` | Delivery team |
+| Console URL | `console_url` of the cluster | Delivery team |
+| User | `admin` | Delivery team |
+| Password | The cluster password (also valid for kubevirt-manager) | Delivery team |
+| Participant | Name of the person (or pair) using it | Participant (column name TBD) |
 
-`clusters/<name>/logs/verify-*.log` lists the two URLs for each cluster.
+Optional columns: the landing page (`https://vm-web.apps.<cluster domain>`) and kubevirt-manager (`https://kubevirt-manager.apps.<cluster domain>`) URLs. `clusters/<name>/logs/verify-*.log` lists both for each cluster.
+
+The sheet holds admin passwords. Share the link only in the room (screen and session chat), keep editing limited to the "Participant" column if possible, and delete the sheet or rotate the clusters after the event.
 
 ## 3. Before each session
 
@@ -75,7 +77,7 @@ Your own laptop, for the projector:
 
 | Clock | Module | You do | Checkpoint before moving on |
 |---|---|---|---|
-| 0:00 | 1. Access from your browser | Show the handout, the web terminal, the repo clone and `virtctl` in the web terminal (nothing on laptops) | Everyone sees 5 VMs `Running` |
+| 0:00 | 1. Access from your browser | Show the participant sheet, the web terminal, the repo clone and `virtctl` in the web terminal (nothing on laptops) | Everyone sees 5 VMs `Running` |
 | 0:05 | 2. How KubeVirt works | The "worries" table, VM / VMI / virt-launcher; live-type `kubectl apply`; use cases | `vm-live` Running |
 | 0:20 | 3. VM lifecycle | SSH, serial console, stop/start/restart, `runStrategy` | SSH into `vm-live` works |
 | 0:30 | 4. Storage | `golden-image`, Block/RWX, snapshot clone | `vm-clone-live` DataVolume `Succeeded` |

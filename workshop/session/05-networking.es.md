@@ -37,7 +37,7 @@ La página de inicio en tu navegador mezcla ambos mundos detrás de una sola URL
 
 ```bash
 kubectl get ingress -n demo-vms vm-web -o jsonpath='{range .spec.rules[0].http.paths[*]}{.path} -> {.backend.service.name}{"\n"}{end}'
-kubectl run curl -n demo-vms --rm -it --restart=Never --image=quay.io/curl/curl:latest -- curl -s http://node-reporter.demo-vms.svc:8080/api/node?vm=vm-web
+kubectl run curl -n demo-vms --rm -it --restart=Never --image=quay.io/curl/curl:latest -- curl -s 'http://node-reporter.demo-vms.svc:8080/api/node?vm=vm-web'
 ```
 
 ## Expón cualquier puerto de una VM

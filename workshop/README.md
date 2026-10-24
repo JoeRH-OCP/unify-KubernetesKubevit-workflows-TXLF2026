@@ -32,7 +32,7 @@ Each module has a Spanish version (`*.es.md`) next to it. The last 6 minutes are
 
 ## For instructors
 
-- [Instructor guide](instructor/instructor-guide.md): prepare one cluster per participant with `ansible/` (up to 10 in parallel), handout cards, timing, plan B, reset between sessions.
+- [Instructor guide](instructor/instructor-guide.md): prepare one cluster per participant with `ansible/` (up to 10 in parallel), the participant sheet, timing, plan B, reset between sessions.
 - [Prerequisites](prerequisites.md): cluster readiness checklist.
 - The automation itself: [ansible/README.md](../ansible/README.md).
 

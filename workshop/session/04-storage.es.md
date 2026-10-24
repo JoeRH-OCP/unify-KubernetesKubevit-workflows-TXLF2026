@@ -17,7 +17,7 @@ El mismo mecanismo importa desde registries de contenedores, S3 o una carga desd
 Revisa cómo se almacena el disco:
 
 ```bash
-kubectl get pvc -n demo-vms golden-image -o custom-columns=NAME:.metadata.name,MODE:.spec.volumeMode,ACCESS:.spec.accessModes,CLASS:.spec.storageClassName
+kubectl get pvc -n demo-vms golden-image -o 'custom-columns=NAME:.metadata.name,MODE:.spec.volumeMode,ACCESS:.spec.accessModes,CLASS:.spec.storageClassName'
 ```
 
 - **Block:** la VM recibe un dispositivo de bloque crudo, sin sistema de archivos de por medio.

@@ -37,7 +37,7 @@ The landing page in your browser mixes both worlds behind one URL: `/` goes to t
 
 ```bash
 kubectl get ingress -n demo-vms vm-web -o jsonpath='{range .spec.rules[0].http.paths[*]}{.path} -> {.backend.service.name}{"\n"}{end}'
-kubectl run curl -n demo-vms --rm -it --restart=Never --image=quay.io/curl/curl:latest -- curl -s http://node-reporter.demo-vms.svc:8080/api/node?vm=vm-web
+kubectl run curl -n demo-vms --rm -it --restart=Never --image=quay.io/curl/curl:latest -- curl -s 'http://node-reporter.demo-vms.svc:8080/api/node?vm=vm-web'
 ```
 
 ## Expose any port of a VM

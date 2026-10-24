@@ -7,7 +7,7 @@ Esta guía cubre cómo preparar un clúster por participante (o por pareja) con 
 | Cuándo | Qué | Tiempo |
 |---|---|---|
 | Una semana antes | Solicita los clústeres, llena `clusters.vault.yml` y ejecuta preflight en todos | 1 h |
-| El día anterior | Ejecuta `site.yml` en todos los clústeres, revisa el resumen e imprime las tarjetas para participantes | 1 a 2 h (desatendido) |
+| El día anterior | Ejecuta `site.yml` en todos los clústeres, revisa el resumen y confirma que la hoja de participantes coincide con los clústeres | 1 a 2 h (desatendido) |
 | Una hora antes | Ejecuta `reset.yml` + `demo.yml` y luego `verify.yml`; abre tus propias pestañas de demo | 20 min |
 | Entre sesiones | `reset.yml` + `demo.yml` en cada clúster | 15 min |
 | Después del evento | `teardown.yml` o devuelve los clústeres | 30 min |
@@ -23,7 +23,7 @@ ansible-vault encrypt clusters.vault.yml
 ansible-vault edit clusters.vault.yml
 ```
 
-Usa una entrada por clúster, con un nombre corto que coincida con la tarjeta del participante (por ejemplo, `p01` a `p20`). Después ejecuta, desde `ansible/`:
+Usa una entrada por clúster, con un nombre corto que coincida con la columna "Lab" de la hoja de participantes (por ejemplo, `lab01` a `lab20`). Después ejecuta, desde `ansible/`:
 
 ```bash
 scripts/run-clusters.sh preflight.yml
@@ -39,19 +39,21 @@ Esto elimina OpenShift Virtualization y MTV, e instala KubeVirt y CDI upstream, 
 
 Para conservar OpenShift Virtualization en algunos clústeres, define `vars: {virt_mode: cnv}` para ellos en `clusters.vault.yml`. Los módulos para participantes funcionan igual; solo cambia la versión de KubeVirt que se muestra.
 
-## 2. Tarjeta para cada participante
+## 2. La hoja de participantes
 
-Imprime una tarjeta por clúster:
+El equipo de delivery crea una hoja de Google Sheets con un renglón por cada cluster de laboratorio (link: por definir). Los participantes eligen un renglón libre y escriben su nombre durante el Módulo 1, así que mantén las columnas simples:
 
-| Campo | De dónde sale |
-|---|---|
-| URL de consola | `console_url` en `clusters.vault.yml` |
-| Usuario / contraseña | `admin` / la contraseña del clúster (también válida para kubevirt-manager) |
-| Página de inicio | `https://vm-web.apps.<cluster domain>` |
-| kubevirt-manager | `https://kubevirt-manager.apps.<cluster domain>` |
-| Sitio del workshop | la URL de GitHub Pages de este repositorio |
+| Columna | Contenido | Quién la llena |
+|---|---|---|
+| Lab | `lab01` a `lab20`, con los mismos nombres que en `clusters.vault.yml` | Equipo de delivery |
+| URL de la consola | `console_url` del cluster | Equipo de delivery |
+| Usuario | `admin` | Equipo de delivery |
+| Contraseña | La contraseña del cluster (también sirve para kubevirt-manager) | Equipo de delivery |
+| Participante | Nombre de la persona (o pareja) que lo usa | Participante (nombre de la columna por definir) |
 
-`clusters/<name>/logs/verify-*.log` lista las dos URLs de cada clúster.
+Columnas opcionales: las URLs de la página de inicio (`https://vm-web.apps.<cluster domain>`) y de kubevirt-manager (`https://kubevirt-manager.apps.<cluster domain>`). `clusters/<name>/logs/verify-*.log` lista ambas para cada cluster.
+
+La hoja tiene contraseñas de admin. Comparte el link solo en la sala (pantalla y chat de la sesión), limita la edición a la columna "Participante" si es posible y borra la hoja o recicla los clusters después del evento.
 
 ## 3. Antes de cada sesión
 
@@ -75,7 +77,7 @@ Tu propia laptop, para el proyector:
 
 | Reloj | Módulo | Qué haces | Checkpoint antes de avanzar |
 |---|---|---|---|
-| 0:00 | 1. Accede desde tu navegador | Muestra la tarjeta, la terminal web, el clon del repo y `virtctl` en la terminal web (nada en las laptops) | Todos ven 5 VMs en `Running` |
+| 0:00 | 1. Accede desde tu navegador | Muestra la hoja de participantes, la terminal web, el clon del repo y `virtctl` en la terminal web (nada en las laptops) | Todos ven 5 VMs en `Running` |
 | 0:05 | 2. Cómo funciona KubeVirt | La tabla de "miedos", VM / VMI / virt-launcher; escribe `kubectl apply` en vivo; casos de uso | `vm-live` en Running |
 | 0:20 | 3. Ciclo de vida de la VM | SSH, consola serial, stop/start/restart, `runStrategy` | El SSH a `vm-live` funciona |
 | 0:30 | 4. Almacenamiento | `golden-image`, Block/RWX, clon desde snapshot | DataVolume de `vm-clone-live` en `Succeeded` |

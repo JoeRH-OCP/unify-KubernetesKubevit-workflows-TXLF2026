@@ -17,7 +17,7 @@ The same mechanism imports from container registries, S3, or an upload from your
 Look at how the disk is stored:
 
 ```bash
-kubectl get pvc -n demo-vms golden-image -o custom-columns=NAME:.metadata.name,MODE:.spec.volumeMode,ACCESS:.spec.accessModes,CLASS:.spec.storageClassName
+kubectl get pvc -n demo-vms golden-image -o 'custom-columns=NAME:.metadata.name,MODE:.spec.volumeMode,ACCESS:.spec.accessModes,CLASS:.spec.storageClassName'
 ```
 
 - **Block:** the VM gets a raw block device, no filesystem in between.

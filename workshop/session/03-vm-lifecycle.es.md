@@ -49,7 +49,7 @@ virtctl restart vm-live -n demo-vms
 ## Quién decide si una VM corre: runStrategy
 
 ```bash
-kubectl get vm -n demo-vms -o custom-columns=NAME:.metadata.name,STRATEGY:.spec.runStrategy,STATUS:.status.printableStatus
+kubectl get vm -n demo-vms -o 'custom-columns=NAME:.metadata.name,STRATEGY:.spec.runStrategy,STATUS:.status.printableStatus'
 ```
 
 | runStrategy | Comportamiento |

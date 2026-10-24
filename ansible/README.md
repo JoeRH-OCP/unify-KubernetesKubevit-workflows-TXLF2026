@@ -397,7 +397,7 @@ Show the OpenShift console in the browser:
 ### 2. KubeVirt is just Kubernetes (2 min)
 
 ```bash
-k get kubevirt -n kubevirt -o custom-columns=NAME:.metadata.name,VERSION:.status.observedKubeVirtVersion,PHASE:.status.phase
+k get kubevirt -n kubevirt -o 'custom-columns=NAME:.metadata.name,VERSION:.status.observedKubeVirtVersion,PHASE:.status.phase'
 k api-resources --api-group=kubevirt.io
 k get pods -n kubevirt
 ```
@@ -525,7 +525,7 @@ Show the repo link (`demo_repo_url` on the landing page) and the event site.
   kubectl get vmi vm-web -o jsonpath='{.status.conditions[?(@.type=="LiveMigratable")]}'
   ```
 
-  The reason `DisksNotLiveMigratable` means a PVC isn't **RWX**. Check `kubectl get pvc -o custom-columns=NAME:.metadata.name,MODES:.spec.accessModes,MODE:.spec.volumeMode`. Every disk in this repo is Block/RWX. If a DataVolume ended up RWO, the StorageProfile was incomplete when it was created; see the StorageProfile section below.
+  The reason `DisksNotLiveMigratable` means a PVC isn't **RWX**. Check `kubectl get pvc -o 'custom-columns=NAME:.metadata.name,MODES:.spec.accessModes,MODE:.spec.volumeMode`.' Every disk in this repo is Block/RWX. If a DataVolume ended up RWO, the StorageProfile was incomplete when it was created; see the StorageProfile section below.
 - **A migration stays `Pending`/`Scheduling`, or the target pod is `Pending`:**
 
   ```bash
