@@ -22,6 +22,8 @@ kubectl get vmim -n demo-vms -w
 
 Observa el navegador: la página muestra "Live migration in progress" y luego el nombre del nodo nuevo parpadea en naranja. La página nunca se recarga y nginx sigue respondiendo. Presiona Ctrl+C cuando la migración muestre `Succeeded`.
 
+Desde la interfaz, el botón **»** (**Live Migrate**) en la página de `vm-web` en kubevirt-manager hace lo mismo.
+
 Qué pasó:
 
 1. KubeVirt inició un segundo Pod `virt-launcher` en otro nodo.
@@ -121,7 +123,12 @@ Los datos volvieron, exactamente como estaban cuando tomaste el snapshot.
 
 ## Métricas
 
-KubeVirt publica métricas de Prometheus para cada VM, y el monitoreo de OpenShift las recolecta junto a las métricas de los contenedores. En la consola, abre **Observe, Metrics** y ejecuta:
+KubeVirt publica métricas de Prometheus para cada VM, y el monitoreo de OpenShift las recolecta junto a las métricas de los contenedores.
+
+En la consola de OpenShift:
+
+1. En el menú de la izquierda, haz clic en **Observe** y luego en **Metrics**.
+2. Pega una consulta en el cuadro de expresión y haz clic en **Run queries**:
 
 ```text
 rate(kubevirt_vmi_vcpu_seconds_total{namespace="demo-vms"}[2m])
@@ -131,7 +138,14 @@ rate(kubevirt_vmi_vcpu_seconds_total{namespace="demo-vms"}[2m])
 kubevirt_vmi_memory_domain_bytes{namespace="demo-vms"}
 ```
 
-kubevirt-manager dibuja las mismas métricas por VM: abre `vm-web` ahí y mira sus gráficas.
+![Observe, Metrics en la consola de OpenShift con una consulta de KubeVirt](../assets/screenshots/console-metrics.png)
+
+En kubevirt-manager las mismas métricas se grafican por VM:
+
+1. **Virtual Machines**, haz clic en **vm-web**.
+2. Haz clic en la pestaña **Monitoring**: gráficas de CPU, memoria, red y almacenamiento de la última hora.
+
+![La pestaña Monitoring de vm-web en kubevirt-manager](../assets/screenshots/kvm-monitoring.png)
 
 ## Diagnóstico de problemas
 

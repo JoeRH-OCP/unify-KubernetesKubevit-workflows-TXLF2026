@@ -21,6 +21,8 @@ Elige un renglón que nadie haya tomado y escribe tu nombre en él, en la column
 2. Haz clic en el ícono de terminal (`>_`) en la barra superior y luego en **Start**.
 3. Espera a que aparezca el prompt: `oc` y `kubectl` ya tienen sesión iniciada en tu cluster.
 
+![Consola de OpenShift con la terminal web abierta en la parte inferior](../assets/screenshots/console-web-terminal.png)
+
 La terminal corre en un Pod dentro de tu cluster, así que todos los comandos de este workshop funcionan igual desde Windows, macOS, Linux o una Chromebook.
 
 ## Obtén los archivos del laboratorio
@@ -73,7 +75,12 @@ kubectl get ingress -A -o 'custom-columns=NAMESPACE:.metadata.namespace,HOST:.sp
 Abre ambas en pestañas nuevas del navegador:
 
 - `https://vm-web.apps...`: una página web servida desde dentro de una VM. Muestra qué nodo de Kubernetes ejecuta la VM y se actualiza cada 2 segundos. Déjala abierta; la vas a observar en el Módulo 6.
-- `https://kubevirt-manager.apps...`: una interfaz web para KubeVirt. Inicia sesión con `admin` y tu contraseña.
+
+![La página de vm-web mostrando el nodo que ejecuta la VM](../assets/screenshots/landing-vm-web.png)
+
+- `https://kubevirt-manager.apps...`: una interfaz web para KubeVirt. El navegador pide usuario y contraseña: escribe `admin` y la contraseña de tu cluster, y haz clic en **Sign in**. Se abre el **Dashboard**.
+
+![Dashboard de kubevirt-manager](../assets/screenshots/kvm-dashboard.png)
 
 ## Opcional: usa tu propia laptop
 

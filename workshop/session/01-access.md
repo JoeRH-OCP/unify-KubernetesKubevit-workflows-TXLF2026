@@ -21,6 +21,8 @@ Pick a row that nobody has taken and write your name in it, in the column the in
 2. Click the terminal icon (`>_`) in the top bar, then **Start**.
 3. Wait until the prompt appears: `oc` and `kubectl` are already logged in to your cluster.
 
+![OpenShift console with the web terminal open at the bottom](../assets/screenshots/console-web-terminal.png)
+
 The terminal runs in a Pod in your cluster, so all commands in this workshop work the same from Windows, macOS, Linux or a Chromebook.
 
 ## Get the lab files
@@ -73,7 +75,12 @@ kubectl get ingress -A -o 'custom-columns=NAMESPACE:.metadata.namespace,HOST:.sp
 Open both in new browser tabs:
 
 - `https://vm-web.apps...`: a web page served from inside a VM. It shows which Kubernetes node runs the VM and refreshes every 2 seconds. Keep it open; you will watch it in Module 6.
-- `https://kubevirt-manager.apps...`: a web UI for KubeVirt. Log in with `admin` and your password.
+
+![The vm-web landing page showing the node that runs the VM](../assets/screenshots/landing-vm-web.png)
+
+- `https://kubevirt-manager.apps...`: a web UI for KubeVirt. The browser asks for a user and password: type `admin` and your cluster password, then click **Sign in**. The **Dashboard** opens.
+
+![kubevirt-manager dashboard](../assets/screenshots/kvm-dashboard.png)
 
 ## Optional: use your own laptop
 

@@ -63,7 +63,26 @@ kubectl get vm -n demo-vms -o 'custom-columns=NAME:.metadata.name,STRATEGY:.spec
 
 ## Lo mismo en la interfaz
 
-Abre kubevirt-manager, **Virtual Machines**, y elige `vm-live`: los botones de arriba (pausar, iniciar, detener, reiniciar) llaman a la misma API. En las pestañas **Details**, **Networking** y **Disks** ves lo que declaró el YAML.
+1. Ve a la pestaña de kubevirt-manager.
+2. En el menú de la izquierda, haz clic en **Virtual Machines**. Ves todas las VMs con su estado, nodo y namespace.
+
+![Lista de Virtual Machines en kubevirt-manager](../assets/screenshots/kvm-vm-list.png)
+
+3. Haz clic en **vm-live** en la lista para abrir su página.
+4. Usa los botones de arriba a la derecha. Pasa el mouse sobre cada uno para ver su nombre:
+
+| Botón | Nombre | Equivale a |
+|---|---|---|
+| ⏸ | **Pause** | `virtctl pause vm vm-live` |
+| ▶ | **Resume** | `virtctl unpause vm vm-live` |
+| 🔌 | **Power on** | `virtctl start vm-live` |
+| ⏻ | **Power off** | `virtctl stop vm-live` |
+| ↻ | **Restart** | `virtctl restart vm-live` |
+| » | **Live Migrate** | `virtctl migrate vm-live` (Módulo 6) |
+
+5. Haz clic en las pestañas debajo de los botones: **Details** (CPU, memoria, run strategy), **Networking** (NICs e IPs), **Disks**, **Serial** y **Console** (VNC en el navegador). Todo lo que ves viene del YAML que aplicaste.
+
+![La página de vm-live en kubevirt-manager con los botones de acción y las pestañas](../assets/screenshots/kvm-vm-details.png)
 
 ## Checkpoint
 

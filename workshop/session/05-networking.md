@@ -10,6 +10,10 @@ kubectl get vmi -n demo-vms vm-web -o jsonpath='{.status.interfaces[0].ipAddress
 kubectl get pod -n demo-vms -l vm.kubevirt.io/name=vm-web -o wide
 ```
 
+In kubevirt-manager: **Virtual Machines**, click **vm-web**, then the **Networking** tab. It shows the NIC `default` on `podNetwork`, type `masquerade`, and the same IP.
+
+![The Networking tab of vm-web in kubevirt-manager](../assets/screenshots/kvm-networking.png)
+
 The VM's address is the Pod's address. The VM uses the `masquerade` binding: from the outside it looks like any Pod, so the cluster network, DNS and NetworkPolicy apply to it unchanged.
 
 ## A Service in front of a VM

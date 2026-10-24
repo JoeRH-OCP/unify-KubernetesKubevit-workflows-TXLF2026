@@ -81,10 +81,10 @@ Your own laptop, for the projector:
 | 0:05 | 2. How KubeVirt works | The "worries" table, VM / VMI / virt-launcher; live-type `kubectl apply`; use cases | `vm-live` Running |
 | 0:20 | 3. VM lifecycle | SSH, serial console, stop/start/restart, `runStrategy` | SSH into `vm-live` works |
 | 0:30 | 4. Storage | `golden-image`, Block/RWX, snapshot clone | `vm-clone-live` DataVolume `Succeeded` |
-| 0:42 | 5. Networking | Pod IP, Service selector, a container calling the VM, `virtctl expose` | The `curl` container gets `200` |
-| 0:54 | 6. Day-2 operations | Project the landing page during `virtctl migrate`; cordon; snapshot/restore on `vm-web` while they do it on `vm-clone-live`; Observe > Metrics | Node changed; `/srv/data.txt` restored |
-| 1:14 | 7. Trade-offs and one control plane | One-control-plane table, honest trade-offs, containers or VMs, questions | |
-| 1:24 | Buffer | Questions, stragglers, Plan B | |
+| 0:45 | 5. Networking | Pod IP, Service selector, a container calling the VM, `virtctl expose` | The `curl` container gets `200` |
+| 0:57 | 6. Day-2 operations | Project the landing page during `virtctl migrate`; cordon; snapshot/restore on `vm-web` while they do it on `vm-clone-live`; Observe > Metrics | Node changed; `/srv/data.txt` restored |
+| 1:17 | 7. Trade-offs and one control plane | One-control-plane table, honest trade-offs, containers or VMs, questions | |
+| 1:27 | Buffer | Questions, stragglers, Plan B | |
 
 If the room is behind, cut the cordon step and the metrics queries in Module 6, and `virtctl expose` in Module 5. Never cut the live migration or the trade-offs: they are what the abstract promises.
 

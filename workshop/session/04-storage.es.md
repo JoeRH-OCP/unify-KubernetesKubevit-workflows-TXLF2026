@@ -1,6 +1,6 @@
 # Módulo 4: Almacenamiento (los discos son PVCs)
 
-**Tiempo:** 12 minutos
+**Tiempo:** 15 minutos
 **Objetivo:** Ver cómo los discos de una VM se mapean al almacenamiento de Kubernetes y crear una VM nueva a partir de una golden image con un clon a nivel de almacenamiento.
 
 ## La golden image
@@ -144,7 +144,14 @@ El VolumeSnapshot es lo que CDI usó para hacer el clon.
 kubectl get pvc -n demo-vms
 ```
 
-`vm-web`, de `vm-clone-1` a `vm-clone-3` y tu nueva `vm-clone-live` partieron de `golden-image`. En kubevirt-manager, abre `vm-clone-live` y revisa la pestaña **Disks**: el origen es `pvc (demo-vms - golden-image)`.
+`vm-web`, de `vm-clone-1` a `vm-clone-3` y tu nueva `vm-clone-live` partieron de `golden-image`.
+
+Míralo en kubevirt-manager:
+
+1. Menú de la izquierda, **Virtual Machines**, y haz clic en **vm-clone-live**.
+2. Haz clic en la pestaña **Disks**. El renglón `rootdisk` muestra el DataVolume, su tamaño, el modo de acceso, la StorageClass y el origen `pvc (demo-vms - golden-image)`.
+
+![La pestaña Disks de vm-clone-live en kubevirt-manager](../assets/screenshots/kvm-disks.png)
 
 ## Checkpoint
 

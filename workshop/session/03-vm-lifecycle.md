@@ -63,7 +63,26 @@ kubectl get vm -n demo-vms -o 'custom-columns=NAME:.metadata.name,STRATEGY:.spec
 
 ## The same in the UI
 
-Open kubevirt-manager, **Virtual Machines**, pick `vm-live`: the buttons at the top (pause, start, stop, restart) call the same API. In the **Details**, **Networking** and **Disks** tabs you see what the YAML declared.
+1. Go to the kubevirt-manager tab.
+2. In the left menu, click **Virtual Machines**. You see every VM with its status, node and namespace.
+
+![kubevirt-manager Virtual Machines list](../assets/screenshots/kvm-vm-list.png)
+
+3. Click **vm-live** in the list to open its page.
+4. Use the buttons at the top right. Hover over each one to see its name:
+
+| Button | Name | Same as |
+|---|---|---|
+| ⏸ | **Pause** | `virtctl pause vm vm-live` |
+| ▶ | **Resume** | `virtctl unpause vm vm-live` |
+| 🔌 | **Power on** | `virtctl start vm-live` |
+| ⏻ | **Power off** | `virtctl stop vm-live` |
+| ↻ | **Restart** | `virtctl restart vm-live` |
+| » | **Live Migrate** | `virtctl migrate vm-live` (Module 6) |
+
+5. Click the tabs below the buttons: **Details** (CPU, memory, run strategy), **Networking** (NICs and IPs), **Disks**, **Serial** and **Console** (VNC in the browser). Everything shown comes from the YAML you applied.
+
+![The vm-live page in kubevirt-manager with the action buttons and tabs](../assets/screenshots/kvm-vm-details.png)
 
 ## Checkpoint
 
