@@ -83,7 +83,7 @@ flowchart TB
 
 **Places where it can't be 100% vanilla on OpenShift, and what this repo does instead:**
 
-1. **Ingress → Route.** We create plain Ingress objects (`ingressClassName: openshift-default`). OpenShift's ingress-to-route controller creates a Route for each one, and the annotation `route.openshift.io/termination: edge` gives TLS with the router's default certificate.
+1. **Ingress → Route.** We create plain Ingress objects (`ingressClassName: openshift-default`). OpenShift's ingress-to-route controller creates a Route for each one, and the annotation `route.openshift.io/termination: edge` gives TLS with the router's default certificate. The Ingress has **no `tls` block** unless `ingress_tls_secret` is set: a `tls` entry without a valid secret makes the controller skip the Ingress (event `IncompleteIngressToRouteRules`), and the URL shows "Application is not available".
 2. **Console and OAuth branding** only exist in OpenShift CRs: `Console` (operator.openshift.io), `OAuth` (config.openshift.io), `ConsoleNotification` and `ConsoleLink`. They are handled with `kubernetes.core.k8s`, because they're just CRs. The OAuth templates are written by this repo with the same Go template fields that `oc adm create-login-template` generates, so **`oc` is never needed**.
 3. **Removing OpenShift Virtualization** goes through OLM objects (Subscription, CSV). These are also plain CRs, managed with `kubernetes.core.k8s`.
 4. **Pod Security Admission.** The `kubevirt`, `cdi` and `demo-vms` namespaces are labelled `privileged`, with `security.openshift.io/scc.podSecurityLabelSync: "false"` so OpenShift doesn't overwrite the label.
@@ -567,6 +567,7 @@ kubectl describe pod -l vm.kubevirt.io/name=<vm>
 
 - **The default IngressController uses an operator-generated CA** unless `spec.defaultCertificate` is set; preflight reports this. Before the talk, either accept the warning in each tab, or set a trusted wildcard cert (for example from Let's Encrypt) on the IngressController.
 - **Using a different certificate for the demo hosts:** create a TLS Secret in each namespace and set `ingress_tls_secret`.
+- **"Application is not available" / Ingress with no Route:** check the events with `kubectl -n demo-vms describe ingress vm-web`. `IncompleteIngressToRouteRules ... Invalid or missing TLS secret` means a `tls` entry points to a missing secret.
 - **Ingress with no Route:**
 
   ```bash
