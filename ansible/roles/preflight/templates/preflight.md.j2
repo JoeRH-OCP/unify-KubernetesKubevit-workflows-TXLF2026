@@ -112,8 +112,8 @@ Confidence of the CPU model proposal: **{{ pf_proposed_cpu.confidence }}** — {
 
 ```yaml
 ocp_version: "{{ pf_ocp_minor }}"
-storage_class: "{{ storage_class if pf_sc else (pf_rbd_scs | first | default('')) }}"
-snapshot_class: "{{ snapshot_class if pf_vsc else (pf_vsc_names | select('search', 'rbd') | first | default('')) }}"
+storage_class: "{{ pf_proposed_sc }}"
+snapshot_class: "{{ pf_proposed_vsc }}"
 kubevirt_node_placement:
 {{ pf_proposed_placement | to_nice_yaml(indent=2) | indent(2, true) if pf_proposed_placement else '  {}' }}
 kubevirt_cpu_model: "{{ pf_proposed_cpu.value }}"

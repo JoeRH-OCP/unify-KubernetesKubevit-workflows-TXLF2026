@@ -35,7 +35,7 @@ flowchart TB
 
   subgraph ocp["OpenShift 4.21 (Kubernetes 1.34) - 9 bare-metal nodes"]
     subgraph platform["OpenShift (kept as is)"]
-      odf["ODF / Ceph RBD<br/>SC ocs-storagecluster-ceph-rbd<br/>VSC rbdplugin-snapclass"]
+      odf["ODF / Ceph RBD<br/>(external mode)<br/>SC ocs-external-storagecluster-ceph-rbd<br/>VSC ocs-external-…-rbdplugin-snapclass"]
       ovn["OVN-Kubernetes + Multus"]
       nmstate["NMState operator"]
       router["Router (Ingress → Route)"]
@@ -112,7 +112,7 @@ To support another OpenShift version, add a row to `compat_matrix` in [group_var
 ### Cluster
 
 - **OpenShift:** 4.21 (or 4.18; set `ocp_version`), with cluster-admin access.
-- **ODF:** a Ceph RBD StorageClass with Block/RWX support, a matching VolumeSnapshotClass, Ceph `HEALTH_OK`, and ≥ 50 GiB free.
+- **ODF:** a Ceph RBD StorageClass with Block/RWX support, a matching VolumeSnapshotClass, Ceph `HEALTH_OK`, and ≥ 50 GiB free. The defaults are the **external-mode** names (`ocs-external-storagecluster-ceph-rbd`, `ocs-external-storagecluster-rbdplugin-snapclass`), as found on the Red Hat Demo Platform clusters. For internal-mode ODF, set `storage_class: ocs-storagecluster-ceph-rbd` and `snapshot_class: ocs-storagecluster-rbdplugin-snapclass`; preflight proposes the right names either way.
 - **Nodes:** at least **2 workers with `/dev/kvm`** for live migration. With fewer, migration is disabled automatically.
 - **NMState:** the operator plus an `NMState` instance. This is only needed for the optional secondary network.
 - **Wildcard DNS:** `*.apps.<cluster>` must resolve from the laptop.
@@ -378,8 +378,8 @@ virtctl console vm-quick                    # vm-quick: TXLF /etc/issue banner (
 ### 4. Storage: golden image and snapshot clones (3 min)
 
 ```bash
-k get dv,pvc golden-image                   # Block, RWX, ocs-storagecluster-ceph-rbd
-k get storageprofile ocs-storagecluster-ceph-rbd -o jsonpath='{.status}' | jq
+k get dv,pvc golden-image                   # Block, RWX, ocs-external-storagecluster-ceph-rbd
+k get storageprofile ocs-external-storagecluster-ceph-rbd -o jsonpath='{.status}' | jq
 k apply -f manifests/02-vm-clone-live.yaml
 k get dv vm-clone-live-rootdisk -w          # CSI snapshot clone: done in seconds
 k get volumesnapshot
@@ -500,7 +500,7 @@ Show the repo link (`demo_repo_url` on the landing page) and the event site.
 
 ### The StorageProfile is incomplete
 
-`kubectl get storageprofile ocs-storagecluster-ceph-rbd -o yaml`: an empty `status.claimPropertySets` means DataVolumes fail with *"no accessMode specified"*.
+`kubectl get storageprofile ocs-external-storagecluster-ceph-rbd -o yaml`: an empty `status.claimPropertySets` means DataVolumes fail with *"no accessMode specified"*.
 
 - The `cdi` role pins `claimPropertySets: [{accessModes: [ReadWriteMany], volumeMode: Block}]`, `cloneStrategy: snapshot` and `snapshotClass`, then waits for them. Rerun it with `site.yml --tags cdi`.
 - If the clone falls back to host-assisted copy (slow, `cdi-upload-*`/`*-source-pod` pods), check that the `VolumeSnapshotClass` driver matches the StorageClass provisioner (preflight checks this).

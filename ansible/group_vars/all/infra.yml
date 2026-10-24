@@ -22,8 +22,10 @@ reports_dir: "{{ (cluster_dir ~ '/reports') if cluster_name else (playbook_dir ~
 cache_dir: "{{ playbook_dir }}/.cache"
 
 # --- Storage (ODF) ---
-storage_class: "ocs-storagecluster-ceph-rbd"
-snapshot_class: "ocs-storagecluster-rbdplugin-snapclass"
+# ODF in external mode (Red Hat Demo Platform clusters). For internal-mode ODF use
+# ocs-storagecluster-ceph-rbd and ocs-storagecluster-rbdplugin-snapclass.
+storage_class: "ocs-external-storagecluster-ceph-rbd"
+snapshot_class: "ocs-external-storagecluster-rbdplugin-snapclass"
 odf_namespace: "openshift-storage"
 preflight_min_free_gib: 50
 

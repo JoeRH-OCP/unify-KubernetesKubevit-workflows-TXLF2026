@@ -3,7 +3,7 @@
 These files are **not** used by Ansible. Run them from the `ansible/` folder
 (`kubectl apply -f manifests/...`). They exist so you can show plain
 `kubectl apply` on stage. They assume the defaults from `../group_vars/all/`
-(namespace `demo-vms`, StorageClass `ocs-storagecluster-ceph-rbd`,
+(namespace `demo-vms`, StorageClass `ocs-external-storagecluster-ceph-rbd`,
 `golden-image` already imported). Edit them if your infra.yml differs.
 
 | File | What it shows |

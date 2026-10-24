@@ -25,7 +25,7 @@ spec:
             namespace: demo-vms
             name: golden-image
         storage:
-          storageClassName: ocs-storagecluster-ceph-rbd
+          storageClassName: ocs-external-storagecluster-ceph-rbd
           volumeMode: Block
           accessModes:
             - ReadWriteMany
