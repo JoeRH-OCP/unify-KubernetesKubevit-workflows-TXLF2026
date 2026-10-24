@@ -42,9 +42,11 @@ mkdir -p ~/txlf && curl -fsSL https://github.com/JoeRH-OCP/unify-KubernetesKubev
 cd ~/txlf/ansible
 ```
 
-## Obtén virtctl (en la terminal web)
+## Obtén virtctl
 
-`virtctl` es la herramienta de línea de comandos de KubeVirt (consola, SSH, start, stop, migrate). Debe coincidir con la versión de KubeVirt del cluster (v1.9.1). Esto la descarga en la terminal web, no en tu laptop:
+> ⚠️ **Ejecuta esto en la terminal web de OpenShift, no en tu laptop.** Descarga `virtctl` dentro del contenedor de la terminal web; no se instala nada en tu computadora.
+
+`virtctl` es la herramienta de línea de comandos de KubeVirt (consola, SSH, start, stop, migrate). Debe coincidir con la versión de KubeVirt del cluster (v1.9.1):
 
 ```bash
 mkdir -p ~/bin && export PATH=~/bin:$PATH
@@ -108,4 +110,4 @@ kubectl get vm -n demo-vms
 
 Deberías ver `vm-quick`, `vm-web` y de `vm-clone-1` a `vm-clone-3`, todas en `Running`. Si no, levanta la mano ahora: los siguientes módulos dependen de esto.
 
-> La terminal web se reinicia después de un periodo de inactividad. Si `virtctl` desaparece, vuelve a ejecutar los comandos de "Obtén virtctl (en la terminal web)".
+> La terminal web se reinicia después de un periodo de inactividad. Si `virtctl` desaparece, vuelve a ejecutar los comandos de "Obtén virtctl".
