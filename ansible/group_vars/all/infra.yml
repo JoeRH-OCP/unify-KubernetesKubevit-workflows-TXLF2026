@@ -5,11 +5,20 @@
 # OpenShift minor version. Must match the cluster and exist in compat_matrix (versions.yml).
 ocp_version: "4.21"
 
-# kubeconfig used by every module and by `oc` (KUBECONFIG env var, else ~/.kube/config).
-kubeconfig_path: "{{ lookup('env', 'KUBECONFIG') | default('~/.kube/config', true) | expanduser }}"
+# Set by scripts/run-clusters.sh (one run per cluster). Empty = single-cluster mode.
+cluster_name: ""
+cluster_dir: "{{ playbook_dir }}/clusters/{{ cluster_name }}"
 
-# Local folders (relative to the repo root).
-reports_dir: "{{ playbook_dir }}/reports"
+# kubeconfig used by every module.
+#   multi-cluster: clusters/<name>/kubeconfig (written by cluster-login.yml)
+#   single cluster: KUBECONFIG env var, else ~/.kube/config
+kubeconfig_path: >-
+  {{ (cluster_dir ~ '/kubeconfig') if cluster_name
+     else (lookup('env', 'KUBECONFIG') | default('~/.kube/config', true) | expanduser) }}
+
+# Local folders (relative to this ansible/ folder). Reports are per cluster in
+# multi-cluster mode, so backups and passwords never mix between clusters.
+reports_dir: "{{ (cluster_dir ~ '/reports') if cluster_name else (playbook_dir ~ '/reports') }}"
 cache_dir: "{{ playbook_dir }}/.cache"
 
 # --- Storage (ODF) ---

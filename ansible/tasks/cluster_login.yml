@@ -1,0 +1,107 @@
+---
+# Log in to one OpenShift cluster with user + password, the same way `oc login`
+# does: discover the OAuth server, ask it for a token with the
+# openshift-challenging-client (HTTP basic auth), then check the token works.
+# Only ansible.builtin.uri: no `oc`, no OpenShift collection.
+# Input: cluster (one entry of clusters.vault.yml). Output: appends to
+# cluster_login_ok / cluster_login_failed.
+- name: "Log in | {{ cluster.name }}"
+  block:
+    - name: "Compute the API URL | {{ cluster.name }}"
+      ansible.builtin.set_fact:
+        _api_url: >-
+          {{ cluster.api_url | default(cluster.console_url
+             | regex_replace('^https?://console-openshift-console\.apps\.([^/]+).*$', 'https://api.\1:6443')) }}
+        _validate: "{{ cluster.validate_certs | default(clusters_validate_certs) | bool }}"
+
+    - name: "Discover the OAuth server | {{ cluster.name }}"
+      ansible.builtin.uri:
+        url: "{{ _api_url }}/.well-known/oauth-authorization-server"
+        validate_certs: "{{ _validate }}"
+        return_content: true
+        timeout: 20
+      register: _oauth_meta
+      check_mode: false
+
+    - name: "Request a token | {{ cluster.name }}"
+      ansible.builtin.uri:
+        url: "{{ _oauth_meta.json.authorization_endpoint }}?response_type=token&client_id=openshift-challenging-client"
+        url_username: "{{ cluster.username | default('admin') }}"
+        url_password: "{{ cluster.password }}"
+        force_basic_auth: true
+        headers:
+          X-CSRF-Token: "{{ event_slug | default('txlf-2026') }}"
+        follow_redirects: none
+        validate_certs: "{{ _validate }}"
+        status_code: [302]
+        timeout: 20
+      register: _oauth_token
+      check_mode: false
+      no_log: true
+
+    - name: "Extract the token | {{ cluster.name }}"
+      ansible.builtin.set_fact:
+        _token: "{{ (_oauth_token.location | regex_search('access_token=([^&]+)', '\\1')) | first }}"
+      no_log: true
+
+    - name: "Check the token against the API | {{ cluster.name }}"
+      ansible.builtin.uri:
+        url: "{{ _api_url }}/version"
+        headers:
+          Authorization: "Bearer {{ _token }}"
+        validate_certs: "{{ _validate }}"
+        return_content: true
+        timeout: 20
+      register: _api_version
+      check_mode: false
+      no_log: true
+
+    - name: "Create the cluster folder | {{ cluster.name }}"
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/clusters/{{ cluster.name }}"
+        state: directory
+        mode: "0700"
+
+    - name: "Write kubeconfig | {{ cluster.name }}"
+      ansible.builtin.copy:
+        dest: "{{ playbook_dir }}/clusters/{{ cluster.name }}/kubeconfig"
+        mode: "0600"
+        content: "{{ _kubeconfig | to_nice_yaml(indent=2) }}"
+      vars:
+        _user: "{{ cluster.username | default('admin') }}/{{ cluster.name }}"
+        _kubeconfig:
+          apiVersion: v1
+          kind: Config
+          clusters:
+            - name: "{{ cluster.name }}"
+              cluster:
+                server: "{{ _api_url }}"
+                insecure-skip-tls-verify: "{{ not _validate }}"
+          users:
+            - name: "{{ _user }}"
+              user:
+                token: "{{ _token }}"
+          contexts:
+            - name: "{{ cluster.name }}"
+              context:
+                cluster: "{{ cluster.name }}"
+                user: "{{ _user }}"
+          current-context: "{{ cluster.name }}"
+      no_log: true
+
+    - name: "Write vars.yml (cluster_name + overrides) | {{ cluster.name }}"
+      ansible.builtin.copy:
+        dest: "{{ playbook_dir }}/clusters/{{ cluster.name }}/vars.yml"
+        mode: "0600"
+        content: "{{ {'cluster_name': cluster.name} | combine(cluster.vars | default({})) | to_nice_yaml(indent=2) }}"
+
+    - name: "Record success | {{ cluster.name }}"
+      ansible.builtin.set_fact:
+        cluster_login_ok: "{{ cluster_login_ok + [cluster.name ~ ' (Kubernetes ' ~ (_api_version.json.gitVersion | default('?')) ~ ')'] }}"
+        cluster_login_names: "{{ cluster_login_names + [cluster.name] }}"
+  rescue:
+    - name: "Record failure | {{ cluster.name }}"
+      ansible.builtin.set_fact:
+        cluster_login_failed: >-
+          {{ cluster_login_failed + [cluster.name ~ ': ' ~ (ansible_failed_result.msg | default('login failed')
+             | regex_replace('(?i)password\S*', '***') | truncate(160))] }}

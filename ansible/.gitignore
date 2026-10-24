@@ -7,3 +7,6 @@ reports/*
 *.retry
 .DS_Store
 __pycache__/
+clusters/
+clusters.vault.yml
+.vault-pass

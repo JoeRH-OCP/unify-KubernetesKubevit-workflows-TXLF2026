@@ -184,6 +184,7 @@ workshop repository. Run every command (`ansible-navigator`, `ansible-builder`,
 ansible/
 ├── README.md  NOTICE  .gitignore  .yamllint  .ansible-lint
 ├── preflight.yml  site.yml  demo.yml  reset.yml  teardown.yml  verify.yml
+├── cluster-login.yml  clusters.example.yml   # multi-cluster login (see "Running on many clusters")
 ├── ansible.cfg  ansible-navigator.yml  inventory/
 ├── execution-environment.yml  requirements.yml  requirements.txt  bindep.txt
 ├── group_vars/all/
@@ -202,7 +203,8 @@ ansible/
 │   └── teardown/           # reverse of everything (confirm_teardown)
 ├── manifests/          # hand-written YAML for `kubectl apply` on stage
 ├── files/branding/     # TXLF logos (pinned commit, see NOTICE)
-├── scripts/fetch-branding.sh
+├── scripts/fetch-branding.sh  scripts/run-clusters.sh
+├── clusters/           # per-cluster kubeconfig, vars, reports, logs (git-ignored)
 └── reports/            # preflight.md, console/oauth originals, kubevirt-manager password
 ```
 
@@ -285,6 +287,56 @@ Upstream kubevirt-manager only puts basic auth on the UI (`location /`). The `/k
 
 - **User:** `admin`
 - **Password:** `kubevirt_manager_auth_password`, or, if that's empty, a password generated once into `reports/kubevirt-manager-password`.
+
+## Running on many clusters
+
+`scripts/run-clusters.sh` runs any playbook on a list of clusters, up to 10 at a time. It uses the console URL, the `admin` user and the password you get when you order the clusters; no kubeconfig needed. The roles don't change: each run is a normal single-cluster run with its own kubeconfig, reports and logs.
+
+**1. Write the cluster list and encrypt it:**
+
+```bash
+cp clusters.example.yml clusters.vault.yml
+```
+
+Edit `clusters.vault.yml` and add one entry per cluster: `name`, `console_url`, `username`, `password`. You can add optional `vars` to override settings for that cluster, such as `ocp_version`. Then encrypt it:
+
+```bash
+ansible-vault encrypt clusters.vault.yml
+```
+
+`clusters.vault.yml` and `clusters/` are git-ignored.
+
+**2. Run a playbook on all of them:**
+
+```bash
+scripts/run-clusters.sh preflight.yml
+```
+
+```bash
+scripts/run-clusters.sh site.yml --skip-login -- -e confirm_cnv_removal=true
+```
+
+What happens:
+- **Login** (`cluster-login.yml`, once, sequential). It logs in the same way `oc login` does: it discovers the OAuth server, asks for a token with the user and password, and checks the token against the API. Only `ansible.builtin.uri` is used; `kubernetes.core.k8s_auth` now lives in the OpenShift collection `community.okd`. The API URL is derived from the console URL (`console-openshift-console.apps.X` → `https://api.X:6443`). It writes `clusters/<name>/kubeconfig` (token, mode 0600) and `clusters/<name>/vars.yml`. A failed login skips that cluster; the rest go on.
+- **Runs** (parallel, `-p 10` by default). Each cluster runs with `-e @clusters/<name>/vars.yml`, which sets `cluster_name`. With it set, `kubeconfig_path` and `reports_dir` point to `clusters/<name>/`, so backups, the kubevirt-manager password and `preflight.md` never mix between clusters.
+- **Summary.** A table with every cluster, ok/FAILED and the path of its log, plus a ready-to-paste command to re-run only the failed ones. For `preflight.yml`, it also shows the blockers and warnings from each report.
+
+Options:
+
+| Option | Meaning |
+|---|---|
+| `-p N`, `--parallel N` | Clusters at the same time (default 10) |
+| `-o a,b`, `--only a,b` | Only these clusters |
+| `-s`, `--skip-login` | Reuse the kubeconfigs from the last login (OAuth tokens last about 24 h) |
+| `-r ansible-playbook` | Run without the execution environment |
+| `-- <args>` | Anything after `--` goes to every run (tags, `-e`, `--check`) |
+
+**Vault password:** set `ANSIBLE_VAULT_PASSWORD_FILE`, or you'll be asked once. With `ansible-navigator` (the default runner), the file must be inside this `ansible/` folder so the execution environment can see it. Name it `.vault-pass`, which is git-ignored.
+
+**Suggested flow for 20 clusters:**
+1. Run `preflight.yml` on all of them and read the summary.
+2. Run `site.yml` with `--only` on the ones without blockers.
+3. Run `verify.yml` with `--skip-login`.
 
 ---
 

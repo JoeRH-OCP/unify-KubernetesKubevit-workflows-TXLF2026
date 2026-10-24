@@ -10,8 +10,8 @@ ansible-navigator:
       policy: missing
     environment-variables:
       set:
+        # Single-cluster mode. Multi-cluster runs use clusters/<name>/kubeconfig.
         KUBECONFIG: /runner/.kube/config
-        ANSIBLE_CONFIG: /runner/project/ansible.cfg
     volume-mounts:
       # kubeconfig and SSH public key from the laptop.
       - src: ${HOME}/.kube

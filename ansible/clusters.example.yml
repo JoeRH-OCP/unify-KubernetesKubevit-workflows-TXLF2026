@@ -1,0 +1,28 @@
+---
+# Copy to clusters.vault.yml, fill in the data you get when you order the
+# clusters, then encrypt it:
+#   cp clusters.example.yml clusters.vault.yml
+#   ansible-vault encrypt clusters.vault.yml
+# clusters.vault.yml is git-ignored: it holds admin passwords.
+#
+# Per cluster:
+#   name         short, unique (used for the folder clusters/<name>/)
+#   console_url  OpenShift console URL; the API URL is derived from it
+#                (console-openshift-console.apps.X  ->  https://api.X:6443)
+#   username     default: admin
+#   password     the random password from the order
+#   api_url      optional, when the API doesn't follow the pattern above
+#   vars         optional overrides for this cluster only (any group_vars key)
+clusters:
+  - name: lab01
+    console_url: https://console-openshift-console.apps.cluster-abc12.example.com
+    username: admin
+    password: "CHANGE-ME"
+
+  - name: lab02
+    console_url: https://console-openshift-console.apps.cluster-def34.example.com
+    username: admin
+    password: "CHANGE-ME"
+    vars:
+      ocp_version: "4.18"
+      clone_count: 2
