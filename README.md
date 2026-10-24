@@ -15,13 +15,6 @@ A 90-minute hands-on workshop at Texas Linux Fest 2026. KubeVirt lets organizati
 
 - [Visual workshop site](workshop/index.html) (English) · [Español](workshop/index.es.html)
 - [Agenda and module map](workshop/README.md)
-<<<<<<< HEAD
-- Session modules: [1. Access](workshop/session/01-access.md) · [2. How KubeVirt works](workshop/session/02-how-kubevirt-works.md) · [3. VM lifecycle](workshop/session/03-vm-lifecycle.md) · [4. Storage](workshop/session/04-storage.md) · [5. Networking](workshop/session/05-networking.md) · [6. Day-2 operations](workshop/session/06-day2-operations.md) · [7. Trade-offs](workshop/session/07-tradeoffs-and-wrap-up.md)
-- [Instructor guide](workshop/instructor/instructor-guide.md)
-- [Self-paced extras](workshop/README.md#self-paced-extras): the original two-day labs
-
-## Cluster automation
-=======
 - [Cluster prerequisites](workshop/prerequisites.md)
 - [Lab 0 — TexasLinuxFest 2026: welcome and environment check](workshop/labs/00-texaslinuxfest-2026.md)
 - [Lab 1 — Containers and Kubernetes foundations](workshop/labs/01-foundations.md)
@@ -32,7 +25,7 @@ A 90-minute hands-on workshop at Texas Linux Fest 2026. KubeVirt lets organizati
 - [Functional VM manifest (Lab 4)](workshop/manifests/capstone-functional-vm.yaml)
 
 ## Final exercise — Lab 4 · Functional VM
->>>>>>> main
+
 
 [`ansible/`](ansible/README.md) prepares each cluster: upstream KubeVirt and CDI (or keeps OpenShift Virtualization with `virt_mode: cnv`), kubevirt-manager, the TXLF branding and the demo VMs. `ansible/scripts/run-clusters.sh` runs it on many clusters, 10 at a time.
 
