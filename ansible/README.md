@@ -312,8 +312,8 @@ Upstream kubevirt-manager only puts basic auth on the UI (`location /`). The `/k
 - **User:** `admin`
 - **Password:**
   - **Multi-cluster runs** (`scripts/run-clusters.sh`): the cluster's own admin password from `clusters.vault.yml`, unless that cluster's `vars` set `kubevirt_manager_auth_password`.
-  - **Single-cluster runs:** `kubevirt_manager_auth_password`, or, if that's empty, a password generated once into `reports/kubevirt-manager-password` (`cat reports/kubevirt-manager-password`).
-  - To change it: `ansible-navigator run site.yml --tags kubevirt_manager -e kubevirt_manager_auth_password='...'`.
+  - **Single-cluster runs:** a password generated once into `reports/kubevirt-manager-password` (`cat reports/kubevirt-manager-password`).
+  - To change it, run `ansible-navigator run site.yml --tags kubevirt_manager -e kubevirt_manager_auth_password='...'` once. The new password is saved to that same file, so later runs without `-e` keep it. To go back to a random one, delete the file and run again.
 
 ## Running on many clusters
 
