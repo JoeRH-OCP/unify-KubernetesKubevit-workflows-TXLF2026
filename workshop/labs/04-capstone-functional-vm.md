@@ -1,6 +1,6 @@
-# Lab 4 — Capstone: deploy a functional Linux VM
+# Lab 4 — Functional VM: deploy a functional Linux VM
 
-**Suggested time:** 90–120 minutes  
+**Suggested time:** 25 minutes  
 **Success condition:** A persistent Linux VM reaches Running, cloud-init installs and starts an HTTP server, a Kubernetes Service selects the VM, and `curl` returns the expected page.
 
 This lab is the workshop's final exercise. It combines CDI image import, PVC-backed VM storage, cloud-init, KubeVirt lifecycle, and Kubernetes networking.
