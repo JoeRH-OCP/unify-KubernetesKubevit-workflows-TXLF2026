@@ -7,7 +7,7 @@
 
 ### Two ways to get KubeVirt on OpenShift
 
-- **OpenShift Virtualization:** the supported product, installed from OperatorHub with the release-matched Red Hat documentation. It manages KubeVirt and CDI through the HyperConverged resource.
+- **OpenShift Virtualization:** the supported product, installed from OperatorHub with the release-matched Red Hat documentation ([Lab 6](06-openshift-virtualization.md) walks through it). It manages KubeVirt and CDI through the HyperConverged resource.
 - **Upstream KubeVirt:** the project releases installed directly. This is what the TXLF 2026 demo clusters use. The automation in `ansible/` installs it with `virt_mode: kubevirt` (and removes OpenShift Virtualization first), or keeps OpenShift Virtualization with `virt_mode: cnv`. Never mix both on the same cluster.
 
 Instructor checks for OpenShift Virtualization:
