@@ -47,7 +47,6 @@ No expongas claves privadas, secretos cloud-init ni logs sensibles en capturas o
 - Trata las imágenes guest como insumos de la cadena de suministro: usa fuentes confiables, verifica checksums y registra procedencia.
 - No incluyas contraseñas ni claves privadas en YAML plano. Usa claves SSH públicas y controles adecuados para producción.
 - Define requests de CPU/memoria razonables, aplica cuotas y monitorea contención.
-- Elige contenedores para componentes que aprovechan arranque rápido y densidad de kernel compartido; elige VMs si se requiere un SO guest, compatibilidad heredada o límites específicos de aislamiento.
 - Considera segmentación de red y firewall del guest además de NetworkPolicy.
 
 ## Siguientes pasos

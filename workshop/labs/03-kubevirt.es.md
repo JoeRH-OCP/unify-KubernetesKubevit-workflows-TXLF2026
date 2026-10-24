@@ -1,23 +1,9 @@
-# Laboratorio 3: Despliegue de KubeVirt y ciclo de vida de VMs
+# Laboratorio 3: Instala KubeVirt y verifica que esté listo
 
-**Tiempo sugerido:** 3.5–4 horas para los módulos 5 y 6  
-**Objetivo:** comprender el plano de control de KubeVirt, confirmar la instalación y crear/administrar una VM.
+**Tiempo sugerido:** 60–90 minutos  
+**Objetivo:** instalar KubeVirt y CDI en un cluster y confirmar que está listo para VMs. Cómo funciona KubeVirt y el ciclo de vida de las VMs están en los [Módulos 2 y 3 de la sesión de 90 minutos](../session/02-how-kubevirt-works.es.md).
 
-## Módulo 5: Conceptos de KubeVirt
-
-KubeVirt extiende la API de Kubernetes con recursos de VM y ejecuta las cargas de VM en Pods administrados por KubeVirt.
-
-- **virt-api:** endpoint de extensión para recursos de KubeVirt.
-- **virt-controller:** observa VM/VMI y coordina su ciclo de vida.
-- **virt-handler:** administra las VMIs asignadas a cada nodo.
-- **libvirt/QEMU:** ejecuta VMs y administra dispositivos en el nodo.
-- **CDI:** importa discos a PVCs y DataVolumes.
-
-Objetos principales: **VirtualMachine (VM)** expresa configuración y ciclo de vida deseado; **VirtualMachineInstance (VMI)** es la instancia en ejecución; **DataVolume (DV)** importa o clona contenido de disco; **PVC** es el claim de disco persistente.
-
-Una VM puede usar la red Pod con masquerade, un Service para acceso estable y discos respaldados por PVC. Multus agrega interfaces secundarias si el clúster está preparado.
-
-## Módulo 6: Instalación y readiness
+## Instalación y readiness
 
 ### Dos formas de tener KubeVirt en OpenShift
 
@@ -53,37 +39,8 @@ En OpenShift, `ansible/site.yml` hace todo esto más los detalles propios de Ope
 
 **Checkpoint de readiness:** KubeVirt está Available; CDI saludable; nodos programables; StorageClass puede crear PVC; y el instructor probó una VM real.
 
-## Crear e inspeccionar una VM
+## Siguiente paso
 
-Para una prueba rápida, aplica la VM lista para usar del repositorio (usa un containerDisk de Fedora y tu clave SSH, consulta `ansible/manifests/README.md`):
-
-```bash
-kubectl apply -f https://raw.githubusercontent.com/JoeRH-OCP/unify-KubernetesKubevit-workflows-TXLF2026/main/ansible/manifests/01-vm-live.yaml
-kubectl get vm,vmi -n demo-vms vm-live
-```
-
-Para el ejercicio persistente que sirve una aplicación, continúa con el [laboratorio final](04-capstone-functional-vm.es.md).
-
-Comandos útiles:
-
-```bash
-kubectl get vm,vmi -A
-kubectl describe vm CHANGEME
-virtctl start CHANGEME
-virtctl console CHANGEME
-virtctl stop CHANGEME
-```
-
-Quienes usan OpenShift pueden usar `oc`. Instala `virtctl` compatible con la versión de la plataforma.
-
-### Discusión guiada
-
-1. Compara la VM con un Deployment: ¿qué representa el estado deseado y cuál la instancia activa?
-2. Localiza el Pod virt-handler de un nodo e inspecciona logs (demostración del instructor).
-3. Identifica dónde se almacena la imagen y cómo enlaza un PVC con una StorageClass.
-4. Compara `containerDisk` (práctico, normalmente efímero) con un disco persistente basado en DataVolume.
-5. Repasa requisitos de live migration: nodos compatibles, red/política, compatibilidad de CPU y almacenamiento compartido.
-
-## Live migration opcional
-
-Inténtala solo si el clúster y el almacenamiento de la VM están configurados explícitamente para ello (discos RWX, dos o más nodos programables, un modelo de CPU común). Los clústeres de demo de TXLF lo están: consulta el [Módulo 6 de la sesión de 90 minutos](../session/06-day2-operations.es.md) para ver el flujo completo. De lo contrario, explica el flujo y revisa readiness con la condición `LiveMigratable`; una migración fallida en un clúster no preparado no implica un fallo de KubeVirt.
+- Primera VM en el cluster nuevo: [Módulo 2 de la sesión](../session/02-how-kubevirt-works.es.md) (`manifests/01-vm-live.yaml`).
+- Una VM persistente que sirve una aplicación: [Laboratorio 4 final](04-capstone-functional-vm.es.md).
+- Live migration y mantenimiento de nodos: [Módulo 6 de la sesión](../session/06-day2-operations.es.md).

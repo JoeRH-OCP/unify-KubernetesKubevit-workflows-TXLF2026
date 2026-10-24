@@ -38,15 +38,15 @@ Each module has a Spanish version (`*.es.md`) next to it. The modules fill the 9
 
 ## Self-paced extras
 
-The original two-day material stays available for deeper study and longer formats:
+Five labs from the original two-day material, for deeper study after the session. Topics the 90-minute session already covers were removed from them.
 
 | Lab | Topics |
 |---|---|
-| [Lab 1: Container and Kubernetes foundations](labs/01-foundations.md) | Containers vs VMs, OCI images, Pods, Deployments, Services |
-| [Lab 2: Kubernetes networking and storage](labs/02-networking-storage.md) | CNI, Services, NetworkPolicy, PV/PVC, StorageClass |
-| [Lab 3: KubeVirt deployment and VM lifecycle](labs/03-kubevirt.md) | Components, installation (OpenShift Virtualization or upstream), VM lifecycle |
-| [Lab 4 (capstone): deploy a functional Linux VM](labs/04-capstone-functional-vm.md) | CDI import, cloud-init, Service, `curl` validation |
-| [Lab 5: Operations, troubleshooting, and next steps](labs/05-operations.md) | Metrics, troubleshooting, security, placement |
+| [1. Containers and Kubernetes](labs/01-foundations.md) | OCI images, container lifecycle, Pods, Deployments, Services |
+| [2. Kubernetes networking and storage](labs/02-networking-storage.md) | Services, Ingress, NetworkPolicy, PV/PVC, StorageClass |
+| [3. Install KubeVirt](labs/03-kubevirt.md) | Upstream KubeVirt and CDI or OpenShift Virtualization, readiness checks |
+| [4. Capstone: a functional VM](labs/04-capstone-functional-vm.md) | CDI import, cloud-init, Service, `curl` validation |
+| [5. Operations and troubleshooting](labs/05-operations.md) | Observing VMs, troubleshooting, security, placement |
 
 ## Lab conventions
 

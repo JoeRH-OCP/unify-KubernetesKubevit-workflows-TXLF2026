@@ -1,6 +1,6 @@
 # Laboratorio 1: Fundamentos de contenedores y Kubernetes
 
-**Tiempo sugerido:** 3.5–4.5 horas para los módulos 1 y 2  
+**Tiempo sugerido:** 3.5–4.5 horas  
 **Objetivo:** construir y ejecutar una imagen OCI, y después desplegar y exponer una aplicación en Kubernetes.
 
 ## Parte A: Ciclo de vida del contenedor
@@ -56,7 +56,14 @@ kubectl get namespaces
 kubectl explain deployment.spec
 ```
 
-Repasa responsabilidades del control plane, worker nodes, Pods, controladores, Services y reconciliación declarativa.
+Kubernetes mantiene las cargas en el estado que declaras. El API server recibe la declaración, el scheduler asigna Pods a nodos, y los controladores comparan una y otra vez el estado observado con el deseado y corrigen la diferencia.
+
+| Objeto | Qué es |
+|---|---|
+| Pod | La unidad que se ejecuta: uno o más contenedores que comparten red y volúmenes |
+| Deployment | Administra réplicas de Pods y actualizaciones graduales |
+| Service | Un nombre y una IP estables frente a los Pods que selecciona por label |
+| ConfigMap, Secret | Configuración separada de los manifests de la aplicación |
 
 ### Desplegar un Pod con varios contenedores
 

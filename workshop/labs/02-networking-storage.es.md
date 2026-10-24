@@ -1,9 +1,20 @@
 # Laboratorio 2: Redes y almacenamiento de Kubernetes
 
-**Tiempo sugerido:** 3–4 horas para los módulos 3 y 4  
+**Tiempo sugerido:** 3–4 horas  
 **Objetivo:** seguir el tráfico a través de un Service, observar políticas de red y comprobar que un PVC sobrevive al reemplazo de un Pod.
 
 ## Parte A: Redes
+
+Cada Pod recibe su propia IP en el cluster; el plugin CNI conecta los nodos. Los Services dan una dirección estable a Pods que aparecen y desaparecen.
+
+| Exposición | Uso |
+|---|---|
+| ClusterIP | Tráfico dentro del cluster |
+| NodePort | Un puerto abierto en cada nodo |
+| LoadBalancer | Un balanceador externo, si el entorno lo tiene |
+| Ingress o Route | Entrada HTTP/HTTPS con ruteo por host o ruta |
+
+NetworkPolicy controla el tráfico hacia y desde los Pods, si el CNI la aplica.
 
 Usa el Deployment y Service `web` del Laboratorio 1.
 
@@ -25,6 +36,8 @@ Primero confirma que el CNI aplica políticas. Crea una NetworkPolicy que selecc
 **Checkpoint:** explica por qué una política no tiene efecto si el plugin de red no la implementa.
 
 ## Parte B: Almacenamiento persistente
+
+El almacenamiento efímero termina con el Pod. Para conservar datos, un PVC pide almacenamiento; se enlaza a un PV, normalmente aprovisionado al momento por una StorageClass. Revisa el modo de acceso (ReadWriteOnce, ReadWriteMany, ReadOnlyMany), el tamaño pedido y la política de reclaim (qué pasa con el volumen cuando se borra el claim). Las VMs que hacen live migration necesitan ReadWriteMany.
 
 Crea un PVC con la StorageClass predeterminada (o indica `storageClassName: CHANGEME`). Solicita 1Gi en modo `ReadWriteOnce`. Crea un Pod `storage-writer` que monte el PVC en `/data` y escriba un archivo:
 

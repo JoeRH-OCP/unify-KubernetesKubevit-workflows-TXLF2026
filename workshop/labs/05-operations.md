@@ -53,7 +53,6 @@ Do not expose private keys, cloud-init secrets, or sensitive logs in screenshots
 - Treat guest images as software supply-chain inputs: use trusted sources, verify checksums where available, and track image provenance.
 - Avoid embedding passwords or private keys in plain YAML. Use an SSH public key in this lab; use appropriate secret-management controls for production.
 - Set realistic CPU and memory requests; apply quotas and monitor contention.
-- Select containers for application components that benefit from fast startup and shared-kernel density; select VMs when a guest OS boundary, legacy operating system, or VM-specific workload is required.
 - Consider network segmentation and guest firewalling in addition to Kubernetes NetworkPolicy.
 
 ## Next steps
