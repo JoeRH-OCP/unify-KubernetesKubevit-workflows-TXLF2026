@@ -89,6 +89,22 @@ flowchart TB
 4. **Pod Security Admission.** The `kubevirt`, `cdi` and `demo-vms` namespaces are labelled `privileged`, with `security.openshift.io/scc.podSecurityLabelSync: "false"` so OpenShift doesn't overwrite the label.
 5. **kubevirt-manager** runs a fixed UID (10000) upstream. We drop it so restricted-v2 can assign one.
 
+### Virtualization mode (`virt_mode`)
+
+`virt_mode` selects which virtualization layer the demo uses. Set it in `group_vars/all/infra.yml`, with `-e`, or per cluster in `clusters.vault.yml`. If it isn't set, it defaults to `kubevirt`.
+
+| | `kubevirt` (default) | `cnv` |
+|---|---|---|
+| What runs | Upstream KubeVirt + CDI from the GitHub releases | OpenShift Virtualization (already installed) |
+| OpenShift Virtualization | **Removed** (`-e confirm_cnv_removal=true`), deleting the existing VMs | Kept |
+| MTV | **Removed first** if present (`-e confirm_mtv_removal=true`) | Kept |
+| cpuModel / nodePlacement | KubeVirt CR | HyperConverged CR (only if set; originals saved to `reports/hco-original.yaml`) |
+| StorageProfile | Pinned to Block/RWX + snapshot clone | Same, original saved to `reports/storageprofile-original.yaml` |
+| kubevirt-manager, branding, demo VMs | Yes | Yes |
+| teardown.yml | Removes CDI and KubeVirt | Leaves OpenShift Virtualization; reverts the HCO and StorageProfile changes |
+
+> The workshop in this repo recommends OpenShift Virtualization on OpenShift (`cnv`). `kubevirt` is the "upstream, vanilla" variant this demo was built for. Both run the same labs.
+
 ### Versions (verified 2026-10-23)
 
 | `ocp_version` | Kubernetes | KubeVirt | CDI | Console logos |
@@ -121,7 +137,7 @@ To support another OpenShift version, add a row to `compat_matrix` in [group_var
   - `github.com` (release manifests are downloaded by the laptop)
   - `download.fedoraproject.org` (CDI importer)
   - Docker Hub (kubevirt-manager), or a mirror set in `kubevirt_manager_image_registry`
-- **OpenShift Virtualization:** it may be installed; `site.yml` removes it. **MTV must not be installed.**
+- **OpenShift Virtualization / MTV:** with `virt_mode: kubevirt` both may be installed; `site.yml` removes MTV (`confirm_mtv_removal`) and then OpenShift Virtualization (`confirm_cnv_removal`). With `virt_mode: cnv`, OpenShift Virtualization must be installed and healthy.
 
 ### Laptop
 
@@ -239,10 +255,18 @@ ansible-navigator run preflight.yml -e preflight_node_probe=true
 
 **2. Review the report together.** Copy the proposed values into `group_vars/all/infra.yml`.
 
-**3. Full install.** This also removes OpenShift Virtualization if it is present:
+**3. Full install.**
+
+With `virt_mode: kubevirt` (default), this removes OpenShift Virtualization, and MTV if present, before installing upstream KubeVirt:
 
 ```bash
-ansible-navigator run site.yml -e confirm_cnv_removal=true
+ansible-navigator run site.yml -e confirm_cnv_removal=true -e confirm_mtv_removal=true
+```
+
+With `virt_mode: cnv`, nothing is uninstalled:
+
+```bash
+ansible-navigator run site.yml -e virt_mode=cnv
 ```
 
 To preview the CNV removal first:
@@ -313,7 +337,7 @@ scripts/run-clusters.sh preflight.yml
 ```
 
 ```bash
-scripts/run-clusters.sh site.yml --skip-login -- -e confirm_cnv_removal=true
+scripts/run-clusters.sh site.yml --skip-login -- -e confirm_cnv_removal=true -e confirm_mtv_removal=true
 ```
 
 What happens:
@@ -582,6 +606,7 @@ Everything else in this repo comes from quay.io, github.com and fedoraproject.or
 
   Behind a proxy, `cdi_import_proxy: auto` copies the cluster Proxy (and its trusted CA) into `CDI.spec.config.importProxy`.
 - **vm-web landing returns 502 right after creation.** cloud-init is still installing nginx (1–2 min). Watch it with `virtctl console vm-web`. Behind a proxy, set `vm_http_proxy`.
+- **"MTV is installed" blocker.** With `virt_mode: kubevirt`, MTV has to go before OpenShift Virtualization. Add `-e confirm_mtv_removal=true`, or set `virt_mode: cnv` for that cluster. The removal deletes MTV plans, migrations and providers, then the operator, its namespace and the `forklift.konveyor.io` CRDs.
 - **CNV removal stops at "objects still exist".** A finalizer is stuck. The message lists the objects. Fix them, then rerun `site.yml --tags cnv_removal -e confirm_cnv_removal=true`.
 
 ---

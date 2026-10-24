@@ -1,0 +1,51 @@
+---
+# Delete cluster-scoped objects that still point to a deleted namespace.
+# Stale APIServices break API discovery for every client; stale webhooks block
+# writes. Input: refs_namespace.
+- name: List APIServices
+  kubernetes.core.k8s_info:
+    api_version: apiregistration.k8s.io/v1
+    kind: APIService
+  register: refs_apiservices
+
+- name: Delete APIServices that point to the removed namespace
+  kubernetes.core.k8s:
+    state: absent
+    api_version: apiregistration.k8s.io/v1
+    kind: APIService
+    name: "{{ item.metadata.name }}"
+  loop: >-
+    {{ refs_apiservices.resources | selectattr('spec.service', 'defined') | rejectattr('spec.service', 'none')
+       | selectattr('spec.service.namespace', 'equalto', refs_namespace) | list }}
+  loop_control:
+    label: "{{ item.metadata.name }}"
+
+- name: List admission webhooks
+  kubernetes.core.k8s_info:
+    api_version: admissionregistration.k8s.io/v1
+    kind: "{{ item }}"
+  loop: [ValidatingWebhookConfiguration, MutatingWebhookConfiguration]
+  register: refs_webhooks
+
+- name: Select webhooks whose service lived in the removed namespace
+  ansible.builtin.set_fact:
+    refs_stale_webhooks: >-
+      {%- set out = [] -%}
+      {%- for cfg in refs_webhooks.results | map(attribute='resources') | flatten -%}
+      {%-   for wh in cfg.webhooks | default([]) -%}
+      {%-     if (wh.clientConfig.service | default({}, true)).namespace | default('') == refs_namespace and cfg not in out -%}
+      {%-       set _ = out.append(cfg) -%}
+      {%-     endif -%}
+      {%-   endfor -%}
+      {%- endfor -%}
+      {{ out }}
+
+- name: Delete webhooks whose service lived in the removed namespace
+  kubernetes.core.k8s:
+    state: absent
+    api_version: admissionregistration.k8s.io/v1
+    kind: "{{ item.kind }}"
+    name: "{{ item.metadata.name }}"
+  loop: "{{ refs_stale_webhooks }}"
+  loop_control:
+    label: "{{ item.kind }} {{ item.metadata.name }}"

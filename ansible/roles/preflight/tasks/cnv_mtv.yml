@@ -39,12 +39,54 @@
     pf_upstream_kubevirt: "{{ pf_kubevirt_cr.resources | default([]) | rejectattr('metadata.namespace', 'equalto', 'openshift-cnv') | list | length > 0 }}"
     pf_existing_vms: "{{ pf_vms.resources | default([]) | map(attribute='metadata.namespace') | zip(pf_vms.resources | default([]) | map(attribute='metadata.name')) | map('join', '/') | list }}"
 
-- name: Flag MTV
+- name: OpenShift Virtualization version and health
   ansible.builtin.set_fact:
-    pf_blockers: "{{ pf_blockers + ['Migration Toolkit for Virtualization (MTV) is installed: CNV removal will stop. Remove MTV first or keep CNV.'] }}"
-  when: pf_mtv_installed | bool and pf_cnv_installed | bool
+    pf_cnv_version: >-
+      {{ ((pf_hco.resources | default([]) | first | default({})).status.versions | default([])
+         | selectattr('name', 'equalto', 'operator') | map(attribute='version') | first | default('')) }}
+    pf_cnv_available: >-
+      {{ (pf_hco.resources | default([]) | first | default({})).status.conditions | default([])
+         | selectattr('type', 'equalto', 'Available') | selectattr('status', 'equalto', 'True') | list | length > 0 }}
 
-- name: Flag CNV present
+# --- virt_mode: kubevirt (upstream) -------------------------------------------
+- name: Flag MTV (kubevirt mode, removal not confirmed)
+  ansible.builtin.set_fact:
+    pf_blockers: >-
+      {{ pf_blockers + ['Migration Toolkit for Virtualization (MTV) is installed and depends on OpenShift Virtualization. '
+         ~ 'With virt_mode=kubevirt it must be removed first: re-run with -e confirm_mtv_removal=true, or set virt_mode=cnv for this cluster.'] }}
+  when:
+    - virt_mode | default('kubevirt') == 'kubevirt'
+    - pf_mtv_installed | bool
+    - pf_cnv_installed | bool
+    - not confirm_mtv_removal | default(false) | bool
+
+- name: Note MTV removal (kubevirt mode, confirmed)
+  ansible.builtin.set_fact:
+    pf_warnings: "{{ pf_warnings + ['MTV is installed and will be REMOVED before OpenShift Virtualization (confirm_mtv_removal=true).'] }}"
+  when:
+    - virt_mode | default('kubevirt') == 'kubevirt'
+    - pf_mtv_installed | bool
+    - confirm_mtv_removal | default(false) | bool
+
+- name: Flag CNV present (kubevirt mode)
   ansible.builtin.set_fact:
     pf_warnings: "{{ pf_warnings + ['OpenShift Virtualization is installed: site.yml will REMOVE it (needs -e confirm_cnv_removal=true). ' ~ (pf_existing_vms | length) ~ ' VirtualMachine(s) in the cluster will be deleted.'] }}"
-  when: pf_cnv_installed | bool
+  when:
+    - virt_mode | default('kubevirt') == 'kubevirt'
+    - pf_cnv_installed | bool
+
+# --- virt_mode: cnv (OpenShift Virtualization) ----------------------------------
+- name: Flag missing OpenShift Virtualization (cnv mode)
+  ansible.builtin.set_fact:
+    pf_blockers: "{{ pf_blockers + ['virt_mode=cnv needs OpenShift Virtualization installed (no HyperConverged CR found). Install it, or use virt_mode=kubevirt.'] }}"
+  when:
+    - virt_mode | default('kubevirt') == 'cnv'
+    - not pf_cnv_installed | bool
+
+- name: Flag unhealthy OpenShift Virtualization (cnv mode)
+  ansible.builtin.set_fact:
+    pf_warnings: "{{ pf_warnings + ['HyperConverged is not Available: check `kubectl get hco -A` and the pods in openshift-cnv before the demo.'] }}"
+  when:
+    - virt_mode | default('kubevirt') == 'cnv'
+    - pf_cnv_installed | bool
+    - not pf_cnv_available | bool

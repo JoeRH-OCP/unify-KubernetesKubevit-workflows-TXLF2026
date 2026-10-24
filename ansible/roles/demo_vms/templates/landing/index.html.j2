@@ -78,7 +78,7 @@
     <div id="migration" class="migration"></div>
     <div class="facts">
       <span>Namespace: <b>{{ demo_namespace }}</b></span>
-      <span>KubeVirt: <b>{{ kubevirt_version }}</b></span>
+      <span>KubeVirt: <b>{{ demo_kubevirt_version }}</b>{{ ' (OpenShift Virtualization)' if virt_mode | default('kubevirt') == 'cnv' else ' (upstream)' }}</span>
       <span>Guest: <b>Fedora {{ fedora_release }}</b></span>
       <span>Disk: <b>{{ storage_class }}</b> (Block, RWX)</span>
     </div>

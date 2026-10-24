@@ -40,6 +40,18 @@
          if demo_figlet.rc == 0
          else lookup('ansible.builtin.file', playbook_dir ~ '/files/branding/motd-banner.txt') }}
 
+- name: Read the running KubeVirt version (upstream or OpenShift Virtualization)
+  kubernetes.core.k8s_info:
+    api_version: kubevirt.io/v1
+    kind: KubeVirt
+  register: demo_kubevirt_cr
+
+- name: KubeVirt version shown on the landing page and in the MOTD
+  ansible.builtin.set_fact:
+    demo_kubevirt_version: >-
+      {{ (demo_kubevirt_cr.resources | default([]) | first | default({})).status.observedKubeVirtVersion
+         | default(kubevirt_version if virt_mode | default('kubevirt') == 'kubevirt' else 'OpenShift Virtualization', true) }}
+
 - name: Fail on an empty storage class
   ansible.builtin.assert:
     that: storage_class | length > 0

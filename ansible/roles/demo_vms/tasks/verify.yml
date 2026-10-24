@@ -8,15 +8,15 @@
     api_version: "{{ item.api_version }}"
     kind: "{{ item.kind }}"
     namespace: "{{ item.namespace | default(omit) }}"
-    name: "{{ item.name }}"
+    name: "{{ item.name | default(omit) }}"
   loop:
-    - { api_version: kubevirt.io/v1, kind: KubeVirt, namespace: kubevirt, name: kubevirt }
-    - { api_version: cdi.kubevirt.io/v1beta1, kind: CDI, name: cdi }
+    - { api_version: kubevirt.io/v1, kind: KubeVirt }
+    - { api_version: cdi.kubevirt.io/v1beta1, kind: CDI }
     - { api_version: apps/v1, kind: Deployment, namespace: kubevirt-manager, name: kubevirt-manager }
     - { api_version: cdi.kubevirt.io/v1beta1, kind: StorageProfile, name: "{{ storage_class }}" }
     - { api_version: cdi.kubevirt.io/v1beta1, kind: DataVolume, namespace: "{{ demo_namespace }}", name: "{{ golden_image_name }}" }
   loop_control:
-    label: "{{ item.kind }}/{{ item.name }}"
+    label: "{{ item.kind }}/{{ item.name | default('*') }}"
   register: verify_core
 
 - name: Read VMs and VMIs in {{ demo_namespace }}
@@ -49,7 +49,8 @@
     msg: >-
       {{
         [
-          'KubeVirt ........ ' ~ (verify_kv.status.observedKubeVirtVersion | default('-')) ~ '  phase=' ~ (verify_kv.status.phase | default('NOT INSTALLED')),
+          'Mode ............ virt_mode=' ~ (virt_mode | default('kubevirt')) ~ ' (' ~ ('upstream KubeVirt' if virt_mode | default('kubevirt') == 'kubevirt' else 'OpenShift Virtualization') ~ ')',
+          'KubeVirt ........ ' ~ (verify_kv.status.observedKubeVirtVersion | default('-')) ~ '  phase=' ~ (verify_kv.status.phase | default('NOT INSTALLED')) ~ '  ns=' ~ (verify_kv.metadata.namespace | default('-')),
           'CDI ............. ' ~ (verify_cdi.status.observedVersion | default('-')) ~ '  phase=' ~ (verify_cdi.status.phase | default('NOT INSTALLED')),
           'StorageProfile .. ' ~ storage_class ~ '  ' ~ ((verify_sp.status.claimPropertySets | default([{}]) | first).volumeMode | default('-')) ~ '/' ~ ((verify_sp.status.claimPropertySets | default([{}]) | first).accessModes | default(['-']) | join(',')) ~ '  clone=' ~ (verify_sp.status.cloneStrategy | default('-')),
           'golden-image .... ' ~ (verify_golden.status.phase | default('missing')) ~ ' ' ~ (verify_golden.status.progress | default('')),

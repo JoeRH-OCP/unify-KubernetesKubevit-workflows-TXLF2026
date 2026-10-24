@@ -11,6 +11,28 @@
   retries: 30
   delay: 5
 
+# In cnv mode the StorageProfile belongs to OpenShift Virtualization's CDI:
+# save its spec once so teardown.yml can put it back.
+- name: Save the original StorageProfile spec (cnv mode)
+  when: virt_mode | default('kubevirt') == 'cnv'
+  block:
+    - name: Ensure reports directory exists
+      ansible.builtin.file:
+        path: "{{ reports_dir }}"
+        state: directory
+        mode: "0755"
+      check_mode: false
+
+    - name: Write reports/storageprofile-original.yaml
+      ansible.builtin.copy:
+        dest: "{{ reports_dir }}/storageprofile-original.yaml"
+        force: false
+        mode: "0644"
+        content: |
+          # Original spec of StorageProfile {{ storage_class }} saved by {{ event_slug }}.
+          {{ {'name': storage_class, 'spec': cdi_sp.resources[0].spec | default({})} | to_nice_yaml(indent=2) }}
+      check_mode: false
+
 - name: Pin Block/RWX, snapshot clone and the snapshot class
   kubernetes.core.k8s:
     state: patched

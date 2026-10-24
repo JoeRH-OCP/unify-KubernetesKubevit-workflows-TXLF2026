@@ -12,7 +12,7 @@
 #
 # Examples:
 #   scripts/run-clusters.sh preflight.yml
-#   scripts/run-clusters.sh site.yml -- -e confirm_cnv_removal=true
+#   scripts/run-clusters.sh site.yml -- -e confirm_cnv_removal=true -e confirm_mtv_removal=true
 #   scripts/run-clusters.sh site.yml --only lab03,lab07 --skip-login -- -e confirm_cnv_removal=true
 #   scripts/run-clusters.sh demo.yml --skip-login -- --tags scale -e clone_count=5
 #

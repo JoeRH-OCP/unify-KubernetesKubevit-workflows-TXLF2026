@@ -1,0 +1,127 @@
+---
+# Removes MTV (Forklift) before OpenShift Virtualization:
+# MTV custom resources (while its controller still runs, so finalizers clear)
+# -> ForkliftController -> Subscription/CSV -> namespace -> CRDs -> leftovers.
+- name: MTV namespaces
+  ansible.builtin.set_fact:
+    mtv_namespaces: >-
+      {{ (pf_mtv_subs | map(attribute='metadata.namespace') | list
+          + (pf_forklift.resources | default([]) | map(attribute='metadata.namespace') | list)) | unique }}
+
+- name: Show what will be removed
+  ansible.builtin.debug:
+    msg: "Removing MTV from namespace(s): {{ mtv_namespaces | join(', ') }}"
+
+- name: List MTV CRDs
+  kubernetes.core.k8s_info:
+    api_version: apiextensions.k8s.io/v1
+    kind: CustomResourceDefinition
+  register: mtv_crds_all
+
+- name: Select MTV kinds (all except ForkliftController)
+  ansible.builtin.set_fact:
+    mtv_kinds: >-
+      {{ mtv_crds_all.resources | selectattr('spec.group', 'match', '.*' ~ mtv_crd_group_regex)
+         | rejectattr('spec.names.kind', 'equalto', 'ForkliftController') | list }}
+
+- name: List MTV objects (plans, migrations, providers, maps, hooks, ...)
+  kubernetes.core.k8s_info:
+    api_version: "{{ item.spec.group }}/{{ (item.spec.versions | selectattr('storage') | first).name }}"
+    kind: "{{ item.spec.names.kind }}"
+  loop: "{{ mtv_kinds }}"
+  loop_control:
+    label: "{{ item.spec.names.kind }}"
+  register: mtv_objects
+
+- name: Delete MTV objects
+  kubernetes.core.k8s:
+    state: absent
+    api_version: "{{ item.apiVersion }}"
+    kind: "{{ item.kind }}"
+    namespace: "{{ item.metadata.namespace | default(omit) }}"
+    name: "{{ item.metadata.name }}"
+    wait: true
+    wait_timeout: 300
+  loop: "{{ mtv_objects.results | selectattr('resources', 'defined') | map(attribute='resources') | flatten }}"
+  loop_control:
+    label: "{{ item.kind }} {{ item.metadata.namespace | default('') }}/{{ item.metadata.name }}"
+
+- name: Delete ForkliftController CRs and wait until they are gone
+  kubernetes.core.k8s:
+    state: absent
+    api_version: forklift.konveyor.io/v1beta1
+    kind: ForkliftController
+    namespace: "{{ item.metadata.namespace }}"
+    name: "{{ item.metadata.name }}"
+    wait: true
+    wait_timeout: 600
+  loop: "{{ pf_forklift.resources | default([]) }}"
+  loop_control:
+    label: "{{ item.metadata.namespace }}/{{ item.metadata.name }}"
+
+- name: Delete MTV Subscriptions
+  kubernetes.core.k8s:
+    state: absent
+    api_version: operators.coreos.com/v1alpha1
+    kind: Subscription
+    namespace: "{{ item.metadata.namespace }}"
+    name: "{{ item.metadata.name }}"
+  loop: "{{ pf_mtv_subs }}"
+  loop_control:
+    label: "{{ item.metadata.namespace }}/{{ item.metadata.name }}"
+
+- name: List CSVs in the MTV namespaces
+  kubernetes.core.k8s_info:
+    api_version: operators.coreos.com/v1alpha1
+    kind: ClusterServiceVersion
+    namespace: "{{ item }}"
+  loop: "{{ mtv_namespaces }}"
+  register: mtv_csvs
+
+- name: Delete the MTV CSVs
+  kubernetes.core.k8s:
+    state: absent
+    api_version: operators.coreos.com/v1alpha1
+    kind: ClusterServiceVersion
+    namespace: "{{ item.metadata.namespace }}"
+    name: "{{ item.metadata.name }}"
+    wait: true
+    wait_timeout: 300
+  loop: >-
+    {{ mtv_csvs.results | map(attribute='resources') | flatten
+       | rejectattr('status.reason', 'equalto', 'Copied') | list }}
+  loop_control:
+    label: "{{ item.metadata.namespace }}/{{ item.metadata.name }}"
+
+- name: Delete the MTV namespaces
+  kubernetes.core.k8s:
+    state: absent
+    api_version: v1
+    kind: Namespace
+    name: "{{ item }}"
+    wait: true
+    wait_timeout: "{{ cnv_wait_timeout }}"
+  loop: "{{ mtv_namespaces }}"
+
+- name: MTV CRDs
+  ansible.builtin.include_tasks: crd_group.yml
+  vars:
+    crd_group_regex: "{{ mtv_crd_group_regex }}"
+    crd_protected_groups: "{{ cnv_protected_crd_groups }}"
+
+- name: APIServices and webhooks that point to the MTV namespaces
+  ansible.builtin.include_tasks: namespace_refs.yml
+  vars:
+    refs_namespace: "{{ mtv_ns }}"
+  loop: "{{ mtv_namespaces }}"
+  loop_control:
+    loop_var: mtv_ns
+
+- name: Remove the MTV console plugin
+  ansible.builtin.include_tasks: console_plugin.yml
+  vars:
+    plugin_name: "{{ mtv_console_plugin }}"
+
+- name: MTV is gone
+  ansible.builtin.set_fact:
+    pf_mtv_installed: false

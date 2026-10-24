@@ -44,7 +44,7 @@ write_files:
         echo "  {{ event_tagline }}"
         echo
         echo "  Host: $(hostname)   IP: ${IPS:-n/a}"
-        echo "  Running on KubeVirt {{ kubevirt_version }} - namespace {{ demo_namespace }}"
+        echo "  Running on KubeVirt {{ demo_kubevirt_version }} - namespace {{ demo_namespace }}"
         echo
       } > /etc/motd
       {

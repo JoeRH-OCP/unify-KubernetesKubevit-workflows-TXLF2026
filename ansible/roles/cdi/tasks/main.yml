@@ -1,41 +1,46 @@
 ---
-- name: Install the CDI operator {{ cdi_version }}
-  ansible.builtin.include_role:
-    name: kubevirt
-    tasks_from: apply_manifest.yml
-  vars:
-    manifest_url: "{{ cdi_release_url }}/cdi-operator.yaml"
-    manifest_file: "cdi-operator-{{ cdi_version }}.yaml"
-    manifest_namespace_labels: "{{ cdi_namespace_labels }}"
+# virt_mode=cnv: CDI comes with OpenShift Virtualization (HCO also passes the
+# cluster proxy to it), so only the StorageProfile is tuned.
+- name: Upstream CDI (virt_mode=kubevirt)
+  when: virt_mode | default('kubevirt') == 'kubevirt'
+  block:
+    - name: Install the CDI operator {{ cdi_version }}
+      ansible.builtin.include_role:
+        name: kubevirt
+        tasks_from: apply_manifest.yml
+      vars:
+        manifest_url: "{{ cdi_release_url }}/cdi-operator.yaml"
+        manifest_file: "cdi-operator-{{ cdi_version }}.yaml"
+        manifest_namespace_labels: "{{ cdi_namespace_labels }}"
 
-- name: Wait for cdi-operator
-  kubernetes.core.k8s_info:
-    api_version: apps/v1
-    kind: Deployment
-    namespace: "{{ cdi_namespace }}"
-    name: cdi-operator
-    wait: true
-    wait_condition:
-      type: Available
-      status: "True"
-    wait_timeout: 600
+    - name: Wait for cdi-operator
+      kubernetes.core.k8s_info:
+        api_version: apps/v1
+        kind: Deployment
+        namespace: "{{ cdi_namespace }}"
+        name: cdi-operator
+        wait: true
+        wait_condition:
+          type: Available
+          status: "True"
+        wait_timeout: 600
 
-- name: Import proxy
-  ansible.builtin.import_tasks: proxy.yml
+    - name: Import proxy
+      ansible.builtin.import_tasks: proxy.yml
 
-- name: Apply the CDI CR and wait until it is Available
-  kubernetes.core.k8s:
-    state: present
-    apply: true
-    server_side_apply:
-      field_manager: "{{ event_slug }}"
-      force_conflicts: true
-    definition: "{{ lookup('ansible.builtin.template', 'cdi-cr.yaml.j2') | from_yaml }}"
-    wait: true
-    wait_condition:
-      type: Available
-      status: "True"
-    wait_timeout: "{{ cdi_wait_timeout }}"
+    - name: Apply the CDI CR and wait until it is Available
+      kubernetes.core.k8s:
+        state: present
+        apply: true
+        server_side_apply:
+          field_manager: "{{ event_slug }}"
+          force_conflicts: true
+        definition: "{{ lookup('ansible.builtin.template', 'cdi-cr.yaml.j2') | from_yaml }}"
+        wait: true
+        wait_condition:
+          type: Available
+          status: "True"
+        wait_timeout: "{{ cdi_wait_timeout }}"
 
 - name: StorageProfile for {{ storage_class }}
   ansible.builtin.import_tasks: storageprofile.yml

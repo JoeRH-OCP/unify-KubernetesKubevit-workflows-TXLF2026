@@ -5,6 +5,13 @@
 # OpenShift minor version. Must match the cluster and exist in compat_matrix (versions.yml).
 ocp_version: "4.21"
 
+# Virtualization layer (can be set per cluster in clusters.vault.yml `vars`):
+#   kubevirt  upstream KubeVirt + CDI. Removes OpenShift Virtualization first
+#             (-e confirm_cnv_removal=true) and MTV if present (-e confirm_mtv_removal=true).
+#   cnv       keep OpenShift Virtualization; cpuModel/nodePlacement go through the
+#             HyperConverged CR. Nothing is uninstalled.
+virt_mode: kubevirt
+
 # Set by scripts/run-clusters.sh (one run per cluster). Empty = single-cluster mode.
 cluster_name: ""
 cluster_dir: "{{ playbook_dir }}/clusters/{{ cluster_name }}"

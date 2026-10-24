@@ -29,8 +29,13 @@ Generated: {{ pf_report_time }} · Cluster API: `{{ pf_cluster_info.connection.h
 |---|---|
 | OpenShift | {{ pf_ocp_version_full }} (expected `{{ ocp_version }}`) |
 | Kubernetes | {{ pf_k8s_version }} |
+| Virtualization mode (`virt_mode`) | **{{ virt_mode }}** — {{ 'upstream KubeVirt + CDI (OpenShift Virtualization removed)' if virt_mode == 'kubevirt' else 'keep OpenShift Virtualization' }} |
+{% if virt_mode == 'kubevirt' %}
 | KubeVirt to install | {{ kubevirt_version }} |
 | CDI to install | {{ cdi_version }} |
+{% else %}
+| OpenShift Virtualization | {{ pf_cnv_version or 'not installed' }}{{ (' (Available)' if pf_cnv_available | bool else ' (NOT Available)') if pf_cnv_installed | bool else '' }} |
+{% endif %}
 | Console `logos` API | {{ 'yes (4.19+)' if console_logos_api | bool else 'no — customLogoFile fallback' }} |
 
 ## Nodes
@@ -71,7 +76,7 @@ Free on eligible workers: {{ pf_eligible_mem_free | human_bytes }} RAM, {{ '%.1f
 
 | Item | Status |
 |---|---|
-| OpenShift Virtualization (HCO) | {{ 'INSTALLED' if pf_cnv_installed | bool else 'not installed' }} |
+| OpenShift Virtualization (HCO) | {{ ('INSTALLED ' ~ pf_cnv_version) if pf_cnv_installed | bool else 'not installed' }} |
 | MTV (Forklift) | {{ 'INSTALLED' if pf_mtv_installed | bool else 'not installed' }} |
 | Upstream KubeVirt CR | {{ 'present' if pf_upstream_kubevirt | bool else 'not present' }} |
 | VirtualMachines | {{ pf_existing_vms | length }}{{ (': ' ~ (pf_existing_vms | join(', '))) if pf_existing_vms else '' }} |

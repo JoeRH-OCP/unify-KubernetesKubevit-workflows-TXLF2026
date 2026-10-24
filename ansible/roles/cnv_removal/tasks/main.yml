@@ -1,8 +1,13 @@
 ---
 # Removes OpenShift Virtualization in the order the product docs use:
-# workloads -> HyperConverged CR -> Subscription/CSV -> namespace -> orphan CRDs.
+# (MTV, if confirmed) -> workloads -> HyperConverged CR -> Subscription/CSV ->
+# namespace -> orphan CRDs. Only used with virt_mode=kubevirt.
 # OLM objects (Subscription/CSV) are plain CRs, so kubernetes.core.k8s is enough;
 # no `oc` and no redhat.openshift collection needed here.
+- name: Skip in cnv mode
+  ansible.builtin.meta: end_role
+  when: virt_mode | default('kubevirt') != 'kubevirt'
+
 - name: Detect OpenShift Virtualization and MTV
   ansible.builtin.include_role:
     name: preflight
@@ -19,13 +24,6 @@
 - name: Remove OpenShift Virtualization
   when: pf_cnv_installed | bool
   block:
-    - name: Stop if MTV is installed
-      ansible.builtin.fail:
-        msg: >-
-          Migration Toolkit for Virtualization (MTV) is installed and depends on
-          OpenShift Virtualization. Remove MTV first (or keep CNV). Nothing was changed.
-      when: pf_mtv_installed | bool
-
     - name: Require explicit confirmation
       ansible.builtin.assert:
         that: confirm_cnv_removal | bool
@@ -34,6 +32,20 @@
           {{ pf_existing_vms | join(', ') or 'none' }}. Re-run with
           -e confirm_cnv_removal=true (add --check first to preview).
         quiet: true
+
+    - name: Stop if MTV is installed and its removal was not confirmed
+      ansible.builtin.fail:
+        msg: >-
+          Migration Toolkit for Virtualization (MTV) is installed and depends on
+          OpenShift Virtualization. Re-run with -e confirm_mtv_removal=true to remove
+          it first, or set virt_mode=cnv for this cluster. Nothing was changed.
+      when:
+        - pf_mtv_installed | bool
+        - not confirm_mtv_removal | bool
+
+    - name: Remove MTV first
+      ansible.builtin.include_tasks: mtv.yml
+      when: pf_mtv_installed | bool
 
     - name: Workloads (VMs, VMIs, DataVolumes, DataSources, DataImportCrons)
       ansible.builtin.import_tasks: workloads.yml

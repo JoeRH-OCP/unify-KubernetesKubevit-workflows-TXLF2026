@@ -8,6 +8,13 @@
     pf_probe: {}
   tags: [always]
 
+- name: Check virt_mode
+  ansible.builtin.assert:
+    that: virt_mode | default('kubevirt') in ['kubevirt', 'cnv']
+    fail_msg: "virt_mode must be 'kubevirt' (upstream) or 'cnv' (OpenShift Virtualization), not '{{ virt_mode }}'."
+    quiet: true
+  tags: [always]
+
 - name: OpenShift / Kubernetes version
   ansible.builtin.import_tasks: ocp.yml
 

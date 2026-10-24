@@ -20,3 +20,9 @@ cnv_protected_crd_groups:
   - objectbucket.io
   - snapshot.storage.k8s.io
   - k8s.cni.cncf.io
+
+# MTV (Migration Toolkit for Virtualization) depends on OpenShift Virtualization.
+# With virt_mode=kubevirt it is removed first, only with -e confirm_mtv_removal=true.
+confirm_mtv_removal: false
+mtv_crd_group_regex: '(^|\.)forklift\.konveyor\.io$'
+mtv_console_plugin: forklift-console-plugin
