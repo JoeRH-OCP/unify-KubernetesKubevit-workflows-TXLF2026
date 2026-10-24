@@ -1,4 +1,4 @@
-# Lab 5 — Operations, troubleshooting, and next steps
+# Lab 5: Operations, troubleshooting, and next steps
 
 **Suggested time:** 60–90 minutes  
 **Goal:** Use Kubernetes-native tools to inspect VM health, resource allocation, logs, and common failure states.
@@ -14,7 +14,16 @@ kubectl -n kubevirt-workshop describe vmi final-functional-vm
 kubectl -n kubevirt-workshop get events --sort-by=.lastTimestamp
 ```
 
-On OpenShift, inspect the virtualization dashboards and monitoring views available in the cluster. On upstream Kubernetes, use the cluster's configured metrics and logging stack.
+KubeVirt exports Prometheus metrics for every VM. On OpenShift, open **Observe, Metrics** and try:
+
+```text
+rate(kubevirt_vmi_vcpu_seconds_total{namespace="demo-vms"}[2m])
+kubevirt_vmi_memory_domain_bytes{namespace="demo-vms"}
+rate(kubevirt_vmi_network_receive_bytes_total{namespace="demo-vms"}[2m])
+rate(kubevirt_vmi_storage_write_traffic_bytes_total{namespace="demo-vms"}[2m])
+```
+
+The OpenShift Virtualization dashboards only exist when OpenShift Virtualization is installed. With upstream KubeVirt, kubevirt-manager shows the same metrics as graphs on each VM page (CPU, memory, network, storage). On upstream Kubernetes, point any Prometheus at the `kubevirt` namespace ServiceMonitor.
 
 Discuss:
 
@@ -44,7 +53,6 @@ Do not expose private keys, cloud-init secrets, or sensitive logs in screenshots
 - Treat guest images as software supply-chain inputs: use trusted sources, verify checksums where available, and track image provenance.
 - Avoid embedding passwords or private keys in plain YAML. Use an SSH public key in this lab; use appropriate secret-management controls for production.
 - Set realistic CPU and memory requests; apply quotas and monitor contention.
-- Select containers for application components that benefit from fast startup and shared-kernel density; select VMs when a guest OS boundary, legacy operating system, or VM-specific workload is required.
 - Consider network segmentation and guest firewalling in addition to Kubernetes NetworkPolicy.
 
 ## Next steps

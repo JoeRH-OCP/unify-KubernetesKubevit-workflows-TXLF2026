@@ -1,9 +1,9 @@
-# Lab 1 — Container and Kubernetes foundations
+# Lab 1: Container and Kubernetes foundations
 
-**Suggested time:** 3.5–4.5 hours across Modules 1 and 2  
+**Suggested time:** 3.5–4.5 hours  
 **Goal:** Build and run an OCI image, then deploy and expose a small application on Kubernetes.
 
-## Part A — Container lifecycle
+## Part A: Container lifecycle
 
 ### Concepts
 
@@ -52,7 +52,7 @@ podman login CHANGEME_REGISTRY
 podman push "$IMAGE"
 ```
 
-## Part B — Kubernetes objects
+## Part B: Kubernetes objects
 
 ### Inspect the cluster
 
@@ -63,7 +63,14 @@ kubectl get namespaces
 kubectl explain deployment.spec
 ```
 
-Discuss control plane responsibilities, worker nodes, Pods, controllers, Services, and declarative reconciliation.
+Kubernetes keeps workloads in the state you declare. The API server receives the declaration, the scheduler assigns Pods to nodes, and controllers keep comparing the observed state with the desired one and fix the difference.
+
+| Object | What it is |
+|---|---|
+| Pod | The unit that runs: one or more containers that share network and volumes |
+| Deployment | Manages Pod replicas and rolling updates |
+| Service | A stable name and IP in front of the Pods it selects by label |
+| ConfigMap, Secret | Configuration kept outside the application manifests |
 
 ### Deploy a multi-container Pod
 

@@ -1,9 +1,20 @@
-# Lab 2 — Kubernetes networking and storage
+# Lab 2: Kubernetes networking and storage
 
-**Suggested time:** 3–4 hours across Modules 3 and 4  
+**Suggested time:** 3–4 hours  
 **Goal:** Trace traffic through a Service, observe policy behavior, and prove that a PVC survives Pod replacement.
 
-## Part A — Networking
+## Part A: Networking
+
+Each Pod gets its own IP address in the cluster; the CNI plugin connects the nodes. Services give a stable address to Pods that come and go.
+
+| Exposure | Use |
+|---|---|
+| ClusterIP | Traffic inside the cluster |
+| NodePort | A port opened on every node |
+| LoadBalancer | An external load balancer, where the environment has one |
+| Ingress or Route | HTTP/HTTPS entry with host or path routing |
+
+NetworkPolicy controls traffic to and from Pods, if the CNI enforces it.
 
 Use the `web` Deployment and Service from Lab 1.
 
@@ -54,7 +65,9 @@ kubectl -n workshop-basics exec client -- curl -m 3 -sS http://web:8080
 
 **Checkpoint:** Explain why a policy may have no effect on a cluster whose network plugin does not enforce it.
 
-## Part B — Persistent storage
+## Part B: Persistent storage
+
+Ephemeral storage ends with the Pod. To keep data, a PVC requests storage; it binds to a PV, usually provisioned on demand by a StorageClass. Check the access mode (ReadWriteOnce, ReadWriteMany, ReadOnlyMany), the requested size and the reclaim policy (what happens to the volume when the claim is deleted). VMs that live migrate need ReadWriteMany.
 
 Create a PVC using the cluster's default StorageClass. If there is no default class, add `storageClassName: CHANGEME` to the claim.
 

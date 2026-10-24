@@ -1,4 +1,4 @@
-# Laboratorio 5 — Operaciones, troubleshooting y siguientes pasos
+# Laboratorio 5: Operaciones, troubleshooting y siguientes pasos
 
 **Tiempo sugerido:** 60–90 minutos  
 **Objetivo:** usar herramientas nativas de Kubernetes para inspeccionar salud de VM, asignación de recursos, eventos y fallas comunes.
@@ -14,7 +14,16 @@ kubectl -n kubevirt-workshop describe vmi final-functional-vm
 kubectl -n kubevirt-workshop get events --sort-by=.lastTimestamp
 ```
 
-En OpenShift, revisa los dashboards de virtualización y vistas de monitoreo disponibles. En Kubernetes upstream, usa el stack de métricas y logs configurado.
+KubeVirt exporta métricas de Prometheus para cada VM. En OpenShift, abre **Observe, Metrics** y prueba:
+
+```text
+rate(kubevirt_vmi_vcpu_seconds_total{namespace="demo-vms"}[2m])
+kubevirt_vmi_memory_domain_bytes{namespace="demo-vms"}
+rate(kubevirt_vmi_network_receive_bytes_total{namespace="demo-vms"}[2m])
+rate(kubevirt_vmi_storage_write_traffic_bytes_total{namespace="demo-vms"}[2m])
+```
+
+Los dashboards de OpenShift Virtualization solo existen cuando OpenShift Virtualization está instalado. Con KubeVirt upstream, kubevirt-manager muestra las mismas métricas como gráficas en la página de cada VM (CPU, memoria, red, almacenamiento). En Kubernetes upstream, apunta cualquier Prometheus al ServiceMonitor del namespace `kubevirt`.
 
 Analiza la diferencia entre estado deseado de VM y estado runtime de VMI; requests, límites, scheduling y tamaño del guest; capacidad del nodo frente a recursos visibles dentro del guest; cómo relacionar VM/VMI con el launcher Pod y el nodo; y por qué `Running` no demuestra que los servicios del guest estén saludables.
 
@@ -38,7 +47,6 @@ No expongas claves privadas, secretos cloud-init ni logs sensibles en capturas o
 - Trata las imágenes guest como insumos de la cadena de suministro: usa fuentes confiables, verifica checksums y registra procedencia.
 - No incluyas contraseñas ni claves privadas en YAML plano. Usa claves SSH públicas y controles adecuados para producción.
 - Define requests de CPU/memoria razonables, aplica cuotas y monitorea contención.
-- Elige contenedores para componentes que aprovechan arranque rápido y densidad de kernel compartido; elige VMs si se requiere un SO guest, compatibilidad heredada o límites específicos de aislamiento.
 - Considera segmentación de red y firewall del guest además de NetworkPolicy.
 
 ## Siguientes pasos

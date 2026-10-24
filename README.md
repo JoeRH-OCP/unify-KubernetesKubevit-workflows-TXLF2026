@@ -1,20 +1,31 @@
-# Unified Workload Migration with KubeVirt — TXLF 2026
+# KubeVirt Without Fear: Running VMs and Containers Together on One Platform
 
 <p align="center">
-  <img src="workshop/assets/txlf-logo-wide.png" alt="Texas Linux Fest — TXLF" width="520">
+  <img src="workshop/assets/txlf-logo-wide.png" alt="Texas Linux Fest, TXLF" width="520">
 </p>
 <p align="center"><strong>Texas Linux Fest 2026 · TXLF2026</strong></p>
 
 <p align="center"><img src="workshop/assets/kubevirt-cluster-hero.png" alt="Kubernetes cluster running container workloads and a persistent Linux virtual machine" width="760"></p>
 
-A hands-on workshop that takes participants from container and Kubernetes fundamentals to deploying and operating a functional virtual machine on Kubernetes with KubeVirt.
+A 90-minute hands-on workshop at Texas Linux Fest 2026. KubeVirt lets organizations run virtual machines and containers side by side on Kubernetes. This session removes the confusion and fear around it: how KubeVirt works, what it solves, VM lifecycle, networking, storage, day-2 operations, and the practical trade-offs of one control plane for legacy and modern applications.
 
+<<<<<<< HEAD
+**Duration:** 90 minutes · **Audience:** Linux administrators and anyone curious about VMs on Kubernetes · **Format:** bring a laptop; all exercises run in the browser, one prepared cluster per participant
+=======
 **Duration:** One 2-hour session (Texas Linux Fest 2026) or modular sessions · **Audience:** Developers, Linux system administrators, and platform engineers · **Format:** Short theory segments with guided labs
+>>>>>>> main
 
 ## Workshop material
 
-- [Visual workshop overview](workshop/index.html)
+- [Visual workshop site](workshop/index.html) (English) · [Español](workshop/index.es.html)
 - [Agenda and module map](workshop/README.md)
+<<<<<<< HEAD
+- Session modules: [1. Access](workshop/session/01-access.md) · [2. How KubeVirt works](workshop/session/02-how-kubevirt-works.md) · [3. VM lifecycle](workshop/session/03-vm-lifecycle.md) · [4. Storage](workshop/session/04-storage.md) · [5. Networking](workshop/session/05-networking.md) · [6. Day-2 operations](workshop/session/06-day2-operations.md) · [7. Trade-offs](workshop/session/07-tradeoffs-and-wrap-up.md)
+- [Instructor guide](workshop/instructor/instructor-guide.md)
+- [Self-paced extras](workshop/README.md#self-paced-extras): the original two-day labs
+
+## Cluster automation
+=======
 - [Cluster prerequisites](workshop/prerequisites.md)
 - [Lab 0 — TexasLinuxFest 2026: welcome and environment check](workshop/labs/00-texaslinuxfest-2026.md)
 - [Lab 1 — Containers and Kubernetes foundations](workshop/labs/01-foundations.md)
@@ -25,15 +36,14 @@ A hands-on workshop that takes participants from container and Kubernetes fundam
 - [Functional VM manifest (Lab 4)](workshop/manifests/capstone-functional-vm.yaml)
 
 ## Final exercise — Lab 4 · Functional VM
+>>>>>>> main
 
-Participants import a cloud image with CDI, boot a Linux VM with persistent storage, start an HTTP service inside the guest, and validate the page through a Kubernetes Service with `curl`.
-
-Before the lab, replace `CHANGEME_IMAGE_URL` and, if using SSH, `CHANGEME_SSH_PUBLIC_KEY` in the manifest. The cluster must already have KubeVirt or OpenShift Virtualization, CDI, and a working StorageClass.
+[`ansible/`](ansible/README.md) prepares each cluster: upstream KubeVirt and CDI (or keeps OpenShift Virtualization with `virt_mode: cnv`), kubevirt-manager, the TXLF branding and the demo VMs. `ansible/scripts/run-clusters.sh` runs it on many clusters, 10 at a time.
 
 ## Platform paths
 
-- **OpenShift:** Install OpenShift Virtualization from OperatorHub using documentation for the OpenShift release. Do not layer the upstream KubeVirt operator on top.
-- **Upstream Kubernetes:** Install KubeVirt and CDI from their official guides with compatible, pinned releases.
-- **Local clusters:** Validate nested virtualization, compute, storage, and networking before class.
+- **OpenShift:** either OpenShift Virtualization from OperatorHub, or upstream KubeVirt installed by `ansible/` (`virt_mode: kubevirt`, which removes OpenShift Virtualization first). Never both on the same cluster.
+- **Upstream Kubernetes:** install KubeVirt and CDI from their official releases with compatible, pinned versions (tested: KubeVirt v1.9.1, CDI v1.66.1 on Kubernetes 1.34).
+- **Local clusters:** validate nested virtualization, compute, storage, and networking before class.
 
 See [visual asset credits and details](workshop/assets/README.md). All PNGs used in the workshop have transparent backgrounds.
