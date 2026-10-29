@@ -1,3 +1,17 @@
+const style = document.createElement("style");
+ style.textContent = `
+  figure.qr-slot figcaption a:link {
+    color: #ffffff;
+    text-decoration: underline;
+  }
+  figure.qr-slot figcaption a:visited {
+    color: #7dd3fc;
+  }
+  figure.qr-slot figcaption a:hover {
+    color: #bae6fd;
+  }
+`;
+document.head.appendChild(style);
 const slides=[
 {"eyebrow": "Texas Linux Fest 2026 · Hands-on workshop", "title": "KubeVirt Without Fear", "text": "Running VMs and Containers Together on One Platform. 90 minutes, one cluster each, everything in your browser.", "image": "assets/kubevirt-cluster-hero.png"},
 {"eyebrow": "Today · 90 minutes", "title": "The plan", "bullets": ["1. Access from your browser (5 min)", "2. How KubeVirt works (15 min)", "3. VM lifecycle (10 min)", "4. Storage (15 min) · 5. Networking (15 min)", "6. Day-2 operations (20 min)", "7. Trade-offs: one platform for VMs and containers (10 min)"]},
