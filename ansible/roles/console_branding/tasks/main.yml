@@ -18,3 +18,7 @@
 
 - name: OAuth login templates
   ansible.builtin.import_tasks: oauth.yml
+
+- name: Hide the Argo CD link from the console application menu
+  ansible.builtin.include_tasks: argocd_link.yml
+  when: hide_argocd_consolelink | default(true) | bool

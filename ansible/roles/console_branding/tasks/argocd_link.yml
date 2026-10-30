@@ -1,0 +1,88 @@
+---
+# Hide the "Cluster Argo CD" link that the OpenShift GitOps operator adds to the
+# console application menu. Deleting the ConsoleLink alone is not enough: the
+# operator recreates it. The supported switch is the operator variable
+# DISABLE_DEFAULT_ARGOCD_CONSOLELINK=true, set in its Subscription. Argo CD and
+# its Applications keep running. teardown.yml restores the original Subscription.
+- name: Find the OpenShift GitOps Subscription
+  kubernetes.core.k8s_info:
+    api_version: operators.coreos.com/v1alpha1
+    kind: Subscription
+  register: cb_subs
+
+- name: Pick the GitOps Subscription
+  ansible.builtin.set_fact:
+    cb_gitops_sub: >-
+      {{ cb_subs.resources | default([]) | selectattr('spec.name', 'equalto', gitops_subscription_package) | first | default({}) }}
+
+- name: Hide the Argo CD console link
+  when: cb_gitops_sub | length > 0
+  vars:
+    cb_gitops_ns: "{{ cb_gitops_sub.metadata.namespace }}"
+    cb_env: "{{ cb_gitops_sub.spec.config.env | default([]) }}"
+    cb_env_wanted: >-
+      {{ cb_env | rejectattr('name', 'equalto', argocd_consolelink_env) | list
+         + [{'name': argocd_consolelink_env, 'value': 'true'}] }}
+  block:
+    - name: Ensure reports directory exists
+      ansible.builtin.file:
+        path: "{{ reports_dir }}"
+        state: directory
+        mode: "0755"
+      check_mode: false
+
+    # force: false = written only the first time, like the Console and OAuth backups.
+    - name: Save the original GitOps Subscription config to {{ gitops_backup_file }}
+      ansible.builtin.copy:
+        dest: "{{ gitops_backup_file }}"
+        force: false
+        mode: "0644"
+        content: |
+          # Original spec.config of Subscription {{ cb_gitops_ns }}/{{ cb_gitops_sub.metadata.name }}
+          # saved by {{ event_slug }} on {{ now(utc=true, fmt='%Y-%m-%d %H:%M UTC') }}.
+          {{ {'namespace': cb_gitops_ns, 'name': cb_gitops_sub.metadata.name,
+              'config': cb_gitops_sub.spec.config | default(None)} | to_nice_yaml(indent=2) }}
+      check_mode: false
+
+    # Merge patch replaces spec.config.env as a whole and keeps the other config keys.
+    - name: Turn off the Argo CD console link in the GitOps operator config
+      kubernetes.core.k8s:
+        state: patched
+        merge_type: merge
+        api_version: operators.coreos.com/v1alpha1
+        kind: Subscription
+        namespace: "{{ cb_gitops_ns }}"
+        name: "{{ cb_gitops_sub.metadata.name }}"
+        definition:
+          spec:
+            config:
+              env: "{{ cb_env_wanted }}"
+      when: cb_env | selectattr('name', 'equalto', argocd_consolelink_env) | selectattr('value', 'equalto', 'true') | list | length == 0
+
+    # OLM rolls the operator with the new variable; until then the old pod can
+    # recreate the link, so wait before deleting it.
+    - name: Wait for the GitOps operator to run with the new variable
+      kubernetes.core.k8s_info:
+        api_version: apps/v1
+        kind: Deployment
+        namespace: "{{ cb_gitops_ns }}"
+        name: "{{ gitops_operator_deployment }}"
+      register: cb_gitops_deploy
+      until: >-
+        (cb_gitops_deploy.resources | length > 0)
+        and (cb_gitops_deploy.resources[0].spec.template.spec.containers
+             | selectattr('name', 'equalto', 'manager') | map(attribute='env') | first | default([])
+             | selectattr('name', 'equalto', argocd_consolelink_env) | list | length > 0)
+        and (cb_gitops_deploy.resources[0].status.updatedReplicas | default(0)) == (cb_gitops_deploy.resources[0].spec.replicas | default(1))
+        and (cb_gitops_deploy.resources[0].status.availableReplicas | default(0)) >= (cb_gitops_deploy.resources[0].spec.replicas | default(1))
+        and (cb_gitops_deploy.resources[0].status.unavailableReplicas | default(0)) == 0
+      retries: 30
+      delay: 10
+      when: not ansible_check_mode
+
+    - name: Delete the Argo CD console link
+      kubernetes.core.k8s:
+        state: absent
+        api_version: console.openshift.io/v1
+        kind: ConsoleLink
+        name: "{{ argocd_consolelink_name }}"
