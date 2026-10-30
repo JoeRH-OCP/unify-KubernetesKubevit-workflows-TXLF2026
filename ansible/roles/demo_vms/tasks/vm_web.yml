@@ -5,18 +5,12 @@
   register: demo_about_logo
 
 - name: Cloud-init Secret for vm-web (nginx + landing page)
-  kubernetes.core.k8s:
-    state: present
-    definition:
-      apiVersion: v1
-      kind: Secret
-      type: Opaque
-      metadata:
-        name: vm-web-cloudinit
-        namespace: "{{ demo_namespace }}"
-        labels: "{{ event_labels | combine({'app.kubernetes.io/component': 'vm-web'}) }}"
-      data:
-        userdata: "{{ lookup('ansible.builtin.template', 'cloud-init.yaml.j2', template_vars={'ci_hostname': 'vm-web', 'ci_web': true}) | b64encode }}"
+  ansible.builtin.include_tasks: cloudinit_secret.yml
+  vars:
+    ci_secret_name: vm-web-cloudinit
+    ci_hostname: vm-web
+    ci_component: vm-web
+    ci_web: true
 
 - name: VirtualMachine vm-web
   kubernetes.core.k8s:

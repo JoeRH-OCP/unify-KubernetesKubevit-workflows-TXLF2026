@@ -1,4 +1,11 @@
 ---
+- name: Cloud-init Secret for vm-quick
+  ansible.builtin.include_tasks: cloudinit_secret.yml
+  vars:
+    ci_secret_name: vm-quick-cloudinit
+    ci_hostname: vm-quick
+    ci_component: vm-quick
+
 - name: VirtualMachine vm-quick (containerDisk + cloud-init)
   kubernetes.core.k8s:
     state: present

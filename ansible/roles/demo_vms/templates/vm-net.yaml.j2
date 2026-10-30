@@ -71,5 +71,6 @@ spec:
             name: vm-net-rootdisk
         - name: cloudinit
           cloudInitNoCloud:
-            userData: {{ lookup('ansible.builtin.template', 'cloud-init.yaml.j2', template_vars={'ci_hostname': 'vm-net', 'ci_web': false}) | to_json }}
+            secretRef:
+              name: vm-net-cloudinit
             networkData: {{ lookup('ansible.builtin.template', 'network-data.yaml.j2') | to_json }}

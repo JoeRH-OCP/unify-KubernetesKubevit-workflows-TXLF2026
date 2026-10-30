@@ -1,4 +1,15 @@
 ---
+- name: Cloud-init Secrets for the clones
+  ansible.builtin.include_tasks: cloudinit_secret.yml
+  vars:
+    ci_secret_name: "{{ demo_clone_prefix }}-{{ clone_index }}-cloudinit"
+    ci_hostname: "{{ demo_clone_prefix }}-{{ clone_index }}"
+    ci_component: clone
+  loop: "{{ range(1, (clone_count | int) + 1) | list }}"
+  loop_control:
+    loop_var: clone_index
+    label: "{{ demo_clone_prefix }}-{{ clone_index }}"
+
 - name: Clone VMs from the golden image
   kubevirt.core.kubevirt_vm:
     state: present
@@ -52,7 +63,8 @@
             name: "{{ demo_clone_prefix }}-{{ item }}-rootdisk"
         - name: cloudinit
           cloudInitNoCloud:
-            userData: "{{ lookup('ansible.builtin.template', 'cloud-init.yaml.j2', template_vars={'ci_hostname': demo_clone_prefix ~ '-' ~ item, 'ci_web': false}) }}"
+            secretRef:
+              name: "{{ demo_clone_prefix }}-{{ item }}-cloudinit"
   loop: "{{ range(1, (clone_count | int) + 1) | list }}"
   loop_control:
     label: "{{ demo_clone_prefix }}-{{ item }}"
