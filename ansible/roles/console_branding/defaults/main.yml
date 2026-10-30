@@ -8,3 +8,9 @@ oauth_providers_secret: "{{ event_slug }}-providers-template"
 oauth_error_secret: "{{ event_slug }}-error-template"
 # Icon for the ConsoleLinks in the application menu (pinned to the same commit).
 console_link_image_url: "https://raw.githubusercontent.com/TXLF/2026website/{{ branding_source_sha }}/static/images/favicon.png"
+# OpenShift GitOps (only used when hide_argocd_consolelink is true).
+gitops_subscription_package: openshift-gitops-operator
+gitops_operator_deployment: openshift-gitops-operator-controller-manager
+gitops_backup_file: "{{ reports_dir }}/gitops-subscription-original.yaml"
+argocd_consolelink_env: DISABLE_DEFAULT_ARGOCD_CONSOLELINK
+argocd_consolelink_name: argocd

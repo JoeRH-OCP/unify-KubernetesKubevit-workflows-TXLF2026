@@ -104,6 +104,60 @@
     delete_all: true
   loop: [ConfigMap, Secret]
 
+# The Argo CD console link was hidden through the GitOps Subscription; restoring
+# its original spec.config makes the operator recreate the link.
+- name: Check the saved GitOps Subscription config
+  ansible.builtin.stat:
+    path: "{{ reports_dir }}/gitops-subscription-original.yaml"
+  register: td_gitops_backup
+
+- name: Restore the GitOps Subscription
+  when: td_gitops_backup.stat.exists
+  vars:
+    td_gitops_orig: "{{ lookup('ansible.builtin.file', reports_dir ~ '/gitops-subscription-original.yaml') | from_yaml }}"
+  block:
+    - name: Read the current GitOps Subscription
+      kubernetes.core.k8s_info:
+        api_version: operators.coreos.com/v1alpha1
+        kind: Subscription
+        namespace: "{{ td_gitops_orig.namespace }}"
+        name: "{{ td_gitops_orig.name }}"
+      register: td_gitops_sub
+
+    - name: Restore Subscription spec.config
+      kubernetes.core.k8s_json_patch:
+        api_version: operators.coreos.com/v1alpha1
+        kind: Subscription
+        namespace: "{{ td_gitops_orig.namespace }}"
+        name: "{{ td_gitops_orig.name }}"
+        patch:
+          - op: add
+            path: /spec/config
+            value: "{{ td_gitops_orig.config }}"
+      when:
+        - td_gitops_sub.resources | length > 0
+        - td_gitops_orig.config is not none
+        - td_gitops_sub.resources[0].spec.config | default(None) != td_gitops_orig.config
+
+    - name: Remove Subscription spec.config (there was none)
+      kubernetes.core.k8s_json_patch:
+        api_version: operators.coreos.com/v1alpha1
+        kind: Subscription
+        namespace: "{{ td_gitops_orig.namespace }}"
+        name: "{{ td_gitops_orig.name }}"
+        patch:
+          - op: remove
+            path: /spec/config
+      when:
+        - td_gitops_sub.resources | length > 0
+        - td_gitops_orig.config is none
+        - td_gitops_sub.resources[0].spec.config is defined
+
+    - name: Archive the saved GitOps Subscription config
+      ansible.builtin.command:
+        cmd: mv "{{ reports_dir }}/gitops-subscription-original.yaml" "{{ reports_dir }}/gitops-subscription-original.yaml.restored-{{ now(utc=true, fmt='%Y%m%dT%H%M%SZ') }}"
+        removes: "{{ reports_dir }}/gitops-subscription-original.yaml"
+
 # So the next site.yml captures the cluster's state at that time.
 - name: Archive the saved originals
   ansible.builtin.command:

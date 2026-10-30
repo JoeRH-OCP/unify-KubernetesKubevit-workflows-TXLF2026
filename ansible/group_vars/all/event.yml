@@ -23,6 +23,11 @@ event_color_primary: "#002678"
 event_color_accent: "#FF6600"
 event_color_on_primary: "#FFFFFF"
 
+# Hide the "Cluster Argo CD" link that OpenShift GitOps adds to the console
+# application menu (clusters provisioned with Argo CD, e.g. Red Hat Demo Platform).
+# Argo CD keeps running; teardown.yml shows the link again.
+hide_argocd_consolelink: true
+
 # Link to the demo repository shown on the landing page. Empty = hidden.
 demo_repo_url: ""
 
