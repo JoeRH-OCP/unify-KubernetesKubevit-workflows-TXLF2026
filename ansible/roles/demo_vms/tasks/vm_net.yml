@@ -1,4 +1,11 @@
 ---
+- name: Cloud-init Secret for vm-net
+  ansible.builtin.include_tasks: cloudinit_secret.yml
+  vars:
+    ci_secret_name: vm-net-cloudinit
+    ci_hostname: vm-net
+    ci_component: vm-net
+
 - name: VirtualMachine vm-net (pod network + {{ secondary_nad_name }})
   kubernetes.core.k8s:
     state: present

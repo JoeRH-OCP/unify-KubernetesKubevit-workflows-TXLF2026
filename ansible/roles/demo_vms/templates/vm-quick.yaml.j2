@@ -45,4 +45,5 @@ spec:
             image: {{ demo_containerdisk_image }}
         - name: cloudinit
           cloudInitNoCloud:
-            userData: {{ lookup('ansible.builtin.template', 'cloud-init.yaml.j2', template_vars={'ci_hostname': 'vm-quick', 'ci_web': false}) | to_json }}
+            secretRef:
+              name: vm-quick-cloudinit
