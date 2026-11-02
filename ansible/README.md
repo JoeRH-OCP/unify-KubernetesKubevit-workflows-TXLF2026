@@ -385,7 +385,6 @@ Set up the terminal first, in this `ansible/` folder:
 ```bash
 export KUBECONFIG=~/.kube/txlf-lab
 kubectl config set-context --current --namespace=demo-vms
-alias k=kubectl
 ```
 
 ### 1. Welcome (1 min)
@@ -397,19 +396,19 @@ Show the OpenShift console in the browser:
 ### 2. KubeVirt is just Kubernetes (2 min)
 
 ```bash
-k get kubevirt -n kubevirt -o 'custom-columns=NAME:.metadata.name,VERSION:.status.observedKubeVirtVersion,PHASE:.status.phase'
-k api-resources --api-group=kubevirt.io
-k get pods -n kubevirt
+kubectl get kubevirt -n kubevirt -o 'custom-columns=NAME:.metadata.name,VERSION:.status.observedKubeVirtVersion,PHASE:.status.phase'
+kubectl api-resources --api-group=kubevirt.io
+kubectl get pods -n kubevirt
 ```
 
 ### 3. A VM from a container image, live (4 min)
 
 ```bash
 ../workshop/manifests/00-ssh-key.sh
-k apply -f ../workshop/manifests/01-vm-live.yaml
-k wait vm/vm-live --for=condition=Ready --timeout=10m   # 5-8 min, up to 10
-k get vm,vmi vm-live
-k get pod -l vm.kubevirt.io/name=vm-live -o wide
+kubectl apply -f ../workshop/manifests/01-vm-live.yaml
+kubectl wait vm/vm-live --for=condition=Ready --timeout=10m   # 5-8 min, up to 10
+kubectl get vm,vmi vm-live
+kubectl get pod -l vm.kubevirt.io/name=vm-live -o wide
 virtctl ssh fedora@vm/vm-live               # show the motd, `uname -a`, exit
 virtctl console vm-quick                    # vm-quick: TXLF /etc/issue banner (Ctrl-] to exit)
 ```
@@ -417,19 +416,19 @@ virtctl console vm-quick                    # vm-quick: TXLF /etc/issue banner (
 ### 4. Storage: golden image and snapshot clones (3 min)
 
 ```bash
-k get dv,pvc golden-image                   # Block, RWX, ocs-external-storagecluster-ceph-rbd
-k get storageprofile ocs-external-storagecluster-ceph-rbd -o jsonpath='{.status}' | jq
-k apply -f ../workshop/manifests/02-vm-clone-live.yaml
-k wait vm/vm-clone-live --for=condition=Ready --timeout=10m
-k get dv vm-clone-live-rootdisk             # CSI snapshot clone: the disk takes seconds
-k get volumesnapshot
+kubectl get dv,pvc golden-image                   # Block, RWX, ocs-external-storagecluster-ceph-rbd
+kubectl get storageprofile ocs-external-storagecluster-ceph-rbd -o jsonpath='{.status}' | jq
+kubectl apply -f ../workshop/manifests/02-vm-clone-live.yaml
+kubectl wait vm/vm-clone-live --for=condition=Ready --timeout=10m
+kubectl get dv vm-clone-live-rootdisk             # CSI snapshot clone: the disk takes seconds
+kubectl get volumesnapshot
 ```
 
 ### 5. Scale with Ansible + UI (3 min)
 
 ```bash
 ansible-navigator run demo.yml --tags scale -e clone_count=5
-k get vm -l app.kubernetes.io/component=clone
+kubectl get vm -l app.kubernetes.io/component=clone
 ```
 
 Show **kubevirt-manager** in the browser (TXLF branding), and the VMs on their nodes.
@@ -439,10 +438,10 @@ Show **kubevirt-manager** in the browser (TXLF branding), and the VMs on their n
 Open `https://vm-web.apps.<domain>`. It shows the node and refreshes every 2 seconds.
 
 ```bash
-k get vmi vm-web -o wide                    # current NODENAME
-MIG=$(k create -f ../workshop/manifests/03-migration.yaml -o name)   # MIG = name of the new migration
-k wait $MIG --for=jsonpath='{.status.phase}'=Succeeded --timeout=5m
-k get vmi vm-web -o wide                    # new NODENAME
+kubectl get vmi vm-web -o wide                    # current NODENAME
+MIG=$(kubectl create -f ../workshop/manifests/03-migration.yaml -o name)   # MIG = name of the new migration
+kubectl wait $MIG --for=jsonpath='{.status.phase}'=Succeeded --timeout=5m
+kubectl get vmi vm-web -o wide                    # new NODENAME
 ```
 
 The landing page shows "Live migration in progress", then the new node flashes in orange, without a page reload.
@@ -450,8 +449,8 @@ The landing page shows "Live migration in progress", then the new node flashes i
 ### 7. Snapshot and restore (5 min)
 
 ```bash
-k apply -f ../workshop/manifests/04-snapshot.yaml
-k wait vmsnapshot/vm-web-snap-live --for=jsonpath='{.status.readyToUse}'=true --timeout=5m
+kubectl apply -f ../workshop/manifests/04-snapshot.yaml
+kubectl wait vmsnapshot/vm-web-snap-live --for=jsonpath='{.status.readyToUse}'=true --timeout=5m
 virtctl ssh txlf@vm/vm-web -c 'sudo rm -f /usr/share/nginx/html/index.html'
 ```
 
@@ -459,10 +458,10 @@ Reload the landing page: nginx returns 403. "Oops."
 
 ```bash
 virtctl stop vm-web --wait
-k apply -f ../workshop/manifests/05-restore.yaml
-k wait vmrestore/vm-web-restore-live --for=jsonpath='{.status.complete}'=true --timeout=5m
+kubectl apply -f ../workshop/manifests/05-restore.yaml
+kubectl wait vmrestore/vm-web-restore-live --for=jsonpath='{.status.complete}'=true --timeout=5m
 virtctl start vm-web
-k wait vm/vm-web --for=condition=Ready --timeout=10m
+kubectl wait vm/vm-web --for=condition=Ready --timeout=10m
 ```
 
 Reload the landing page: it's back.
@@ -472,9 +471,9 @@ Reload the landing page: it's back.
 This step needs `enable_secondary_net: true`.
 
 ```bash
-k get nncp,nnce
-k get net-attach-def demo-lan -o yaml
-k apply -f ../workshop/manifests/06-vm-secondary-net.yaml
+kubectl get nncp,nnce
+kubectl get net-attach-def demo-lan -o yaml
+kubectl apply -f ../workshop/manifests/06-vm-secondary-net.yaml
 virtctl ssh fedora@vm/vm-net-live -c 'ip -br addr'
 ```
 
