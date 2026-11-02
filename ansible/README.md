@@ -421,7 +421,7 @@ kubectl get storageprofile ocs-external-storagecluster-ceph-rbd -o jsonpath='{.s
 kubectl apply -f ../workshop/manifests/02-vm-clone-live.yaml
 kubectl wait vm/vm-clone-live --for=condition=Ready --timeout=10m
 kubectl get dv vm-clone-live-rootdisk             # CSI snapshot clone: the disk takes seconds
-kubectl get volumesnapshot
+kubectl get dv vm-clone-live-rootdisk -o yaml | grep cloneType   # snapshot (CDI deletes its temporary VolumeSnapshot)
 ```
 
 ### 5. Scale with Ansible + UI (3 min)

@@ -136,10 +136,10 @@ El DataVolume muestra `Succeeded`. El clon del disco normalmente tarda segundos;
 
 ```bash
 kubectl get vmi -n demo-vms vm-clone-live
-kubectl get volumesnapshot -n demo-vms
+kubectl get dv -n demo-vms vm-clone-live-rootdisk -o yaml | grep cloneType
 ```
 
-El VolumeSnapshot es lo que CDI usó para hacer el clon.
+El último comando muestra `cloneType: snapshot`: CDI hizo el clon a partir de un snapshot CSI de `golden-image`. Borra ese VolumeSnapshot temporal al terminar el clon, por eso `kubectl get volumesnapshot` no muestra nada.
 
 ## Todos los discos de VM que tienes
 
