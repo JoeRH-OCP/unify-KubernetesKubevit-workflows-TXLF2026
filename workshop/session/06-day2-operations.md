@@ -17,10 +17,14 @@ Write down the `NODENAME`. Now move the running VM:
 
 ```bash
 virtctl migrate vm-web -n demo-vms
-kubectl get vmim -n demo-vms -w
+MIG=$(kubectl get vmim -n demo-vms --sort-by=.metadata.creationTimestamp -o name | tail -1)
+kubectl wait $MIG -n demo-vms --for=jsonpath='{.status.phase}'=Succeeded --timeout=5m
+kubectl get vmi -n demo-vms vm-web -o wide
 ```
 
-Watch the browser: the page shows "Live migration in progress", then the new node name flashes in orange. The page never reloads and nginx keeps answering. Press Ctrl+C when the migration shows `Succeeded`.
+`virtctl migrate` starts a migration object with a random name. The second line saves that name in the shell variable `MIG`, so `kubectl wait` knows which migration to wait for.
+
+Watch the browser while the command waits: the page shows "Live migration in progress", then the new node name flashes in orange. The page never reloads and nginx keeps answering. The command returns when the migration is `Succeeded`, and `NODENAME` is a different node.
 
 From the UI, the **»** (**Live Migrate**) button on the `vm-web` page in kubevirt-manager does the same.
 
@@ -45,10 +49,12 @@ kubectl get vm vm-web -n demo-vms -o jsonpath='{.spec.template.spec.evictionStra
 NODE=$(kubectl get vmi -n demo-vms vm-web -o jsonpath='{.status.nodeName}')
 kubectl cordon $NODE
 virtctl migrate vm-web -n demo-vms
-kubectl get vmi -n demo-vms vm-web -o wide -w
+MIG=$(kubectl get vmim -n demo-vms --sort-by=.metadata.creationTimestamp -o name | tail -1)
+kubectl wait $MIG -n demo-vms --for=jsonpath='{.status.phase}'=Succeeded --timeout=5m
+kubectl get vmi -n demo-vms vm-web -o wide
 ```
 
-Ctrl+C after the node changes, then always undo the cordon:
+The VM left the cordoned node. Always undo the cordon:
 
 ```bash
 kubectl uncordon $NODE
@@ -79,10 +85,11 @@ spec:
     kind: VirtualMachine
     name: vm-clone-live
 EOF
-kubectl get vmsnapshot -n demo-vms before-oops -w
+kubectl wait vmsnapshot/before-oops -n demo-vms --for=jsonpath='{.status.readyToUse}'=true --timeout=5m
+kubectl get vmsnapshot -n demo-vms before-oops
 ```
 
-Ctrl+C when `READYTOUSE` is `true`. The QEMU guest agent froze the guest filesystems so the snapshot is consistent, and Ceph took a CSI snapshot of the disk.
+`READYTOUSE` is `true`. The QEMU guest agent froze the guest filesystems so the snapshot is consistent, and Ceph took a CSI snapshot of the disk.
 
 Now the mistake:
 
@@ -108,14 +115,15 @@ spec:
     name: vm-clone-live
   virtualMachineSnapshotName: before-oops
 EOF
-kubectl get vmrestore -n demo-vms undo-oops -w
+kubectl wait vmrestore/undo-oops -n demo-vms --for=jsonpath='{.status.complete}'=true --timeout=5m
 ```
 
-Ctrl+C when `COMPLETE` is `true`, then start the VM and check the file:
+When the restore is complete, start the VM and check the file. Starting it can take a few minutes:
 
 ```bash
 virtctl start vm-clone-live -n demo-vms
-kubectl wait vmi/vm-clone-live -n demo-vms --for=condition=AgentConnected --timeout=180s
+kubectl wait vm/vm-clone-live -n demo-vms --for=condition=Ready --timeout=10m
+kubectl wait vmi/vm-clone-live -n demo-vms --for=condition=AgentConnected --timeout=5m
 virtctl ssh fedora@vm/vm-clone-live -n demo-vms -c 'cat /srv/data.txt'
 ```
 

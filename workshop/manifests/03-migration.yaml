@@ -1,7 +1,7 @@
 # Live-migrate vm-web to another node (same as `virtctl migrate vm-web`).
 #   kubectl -n demo-vms get vmi vm-web -o wide          # note NODENAME
-#   kubectl create -f manifests/03-migration.yaml       # create: generateName
-#   kubectl -n demo-vms get vmim -w
+#   MIG=$(kubectl create -f manifests/03-migration.yaml -o name)   # create: generateName
+#   kubectl -n demo-vms wait $MIG --for=jsonpath='{.status.phase}'=Succeeded --timeout=5m
 #   kubectl -n demo-vms get vmi vm-web -o wide          # new NODENAME
 ---
 apiVersion: kubevirt.io/v1

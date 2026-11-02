@@ -37,10 +37,10 @@ Stopping removes the VMI and its Pod; the VM object stays, with its definition a
 
 ```bash
 virtctl start vm-live -n demo-vms
-kubectl get vmi -n demo-vms vm-live -w
+kubectl wait vm/vm-live -n demo-vms --for=condition=Ready --timeout=10m
 ```
 
-Ctrl+C when it is `Running`. To reboot it:
+Starting it again can take a few minutes; the command returns when it is `Running`. To reboot it:
 
 ```bash
 virtctl restart vm-live -n demo-vms

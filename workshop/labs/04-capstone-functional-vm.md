@@ -19,6 +19,8 @@ This lab is the workshop's final exercise. It combines CDI image import, PVC-bac
 
 Review [the manifest](../manifests/capstone-functional-vm.yaml), replace all placeholders, then apply it:
 
+> ⏳ **Be patient:** creating a VM can take 5 to 8 minutes, and up to 10 on a busy cluster. The `kubectl wait` command returns by itself when the VM is ready; don't cancel it.
+
 ```bash
 kubectl apply -f workshop/manifests/capstone-functional-vm.yaml
 kubectl -n kubevirt-workshop get datavolume,pvc,vm,vmi,svc

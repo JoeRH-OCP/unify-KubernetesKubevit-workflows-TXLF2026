@@ -63,7 +63,7 @@ Any Pod in the cluster now reaches `vm-live-ssh.demo-vms.svc:22`.
 
 ## More than one network
 
-Some VMs need to sit on an existing VLAN or data center network as well. KubeVirt supports secondary interfaces through Multus: a `NetworkAttachmentDefinition` plus a Linux bridge set up on the nodes (for example with the NMState operator). The VM then has one NIC on the Pod network and another one directly on the physical network. See `ansible/manifests/06-vm-secondary-net.yaml` for an example; it is not enabled on the workshop clusters.
+Some VMs need to sit on an existing VLAN or data center network as well. KubeVirt supports secondary interfaces through Multus: a `NetworkAttachmentDefinition` plus a Linux bridge set up on the nodes (for example with the NMState operator). The VM then has one NIC on the Pod network and another one directly on the physical network. See `workshop/manifests/06-vm-secondary-net.yaml` for an example; it is not enabled on the workshop clusters.
 
 ## Checkpoint
 

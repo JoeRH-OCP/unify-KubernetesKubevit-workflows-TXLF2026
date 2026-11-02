@@ -115,15 +115,18 @@ spec:
 | `accessCredentials` | KubeVirt copia tu llave pública del Secret `demo-ssh-key` al guest mediante cloud-init |
 | `cloudInitNoCloud.userData` | Configuración del primer arranque: hostname y un mensaje de bienvenida |
 
-Aplícalo y observa cómo arranca:
+Aplícalo y espera a que esté lista:
+
+> ⏳ **Ten paciencia:** crear una VM puede tardar de 5 a 8 minutos, y hasta 10 en un cluster ocupado. El comando `kubectl wait` termina solo cuando la VM está lista; no lo canceles.
 
 ```bash
-cd ~/txlf/ansible
+cd ~/txlf/workshop
 kubectl apply -f manifests/01-vm-live.yaml
-kubectl get vm,vmi -n demo-vms vm-live -w
+kubectl wait vm/vm-live -n demo-vms --for=condition=Ready --timeout=10m
+kubectl get vm,vmi -n demo-vms vm-live
 ```
 
-Presiona Ctrl+C cuando la VMI esté en `Running` (entre 30 y 60 segundos). Su disco viene de una imagen de contenedor (`containerDisk`), así que no hubo nada que importar.
+La VMI está en `Running`. Su disco viene de una imagen de contenedor (`containerDisk`), así que no hubo nada que importar.
 
 ## Encuentra el Pod y el proceso de QEMU
 

@@ -37,10 +37,10 @@ Al detenerla se eliminan la VMI y su Pod; el objeto VM se queda, con su definici
 
 ```bash
 virtctl start vm-live -n demo-vms
-kubectl get vmi -n demo-vms vm-live -w
+kubectl wait vm/vm-live -n demo-vms --for=condition=Ready --timeout=10m
 ```
 
-Presiona Ctrl+C cuando esté en `Running`. Para reiniciarla:
+Volver a arrancarla puede tardar unos minutos; el comando termina cuando está en `Running`. Para reiniciarla:
 
 ```bash
 virtctl restart vm-live -n demo-vms

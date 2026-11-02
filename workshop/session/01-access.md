@@ -29,11 +29,11 @@ The terminal runs in a Pod in your cluster, so all commands in this workshop wor
 
 Run everything from here on **in the web terminal**: it is a Linux container in your cluster, so nothing is installed on your laptop.
 
-Clone the workshop repository; all the manifests you need are in `ansible/manifests`:
+Clone the workshop repository; all the manifests you need are in `workshop/manifests`:
 
 ```bash
 git clone https://github.com/JoeRH-OCP/unify-KubernetesKubevit-workflows-TXLF2026.git ~/txlf
-cd ~/txlf/ansible
+cd ~/txlf/workshop
 ls manifests
 ```
 
@@ -41,7 +41,7 @@ No `git` in your terminal? Download the same files as an archive instead:
 
 ```bash
 mkdir -p ~/txlf && curl -fsSL https://github.com/JoeRH-OCP/unify-KubernetesKubevit-workflows-TXLF2026/archive/refs/heads/main.tar.gz | tar -xz --strip-components=1 -C ~/txlf
-cd ~/txlf/ansible
+cd ~/txlf/workshop
 ```
 
 ## Get virtctl

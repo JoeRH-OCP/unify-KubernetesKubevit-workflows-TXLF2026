@@ -121,22 +121,25 @@ spec:
 | `evictionStrategy: LiveMigrate` | If its node is drained, the VM migrates instead of stopping (Module 6) |
 | `accessCredentials`, `cloudInitNoCloud` | Same as `vm-live`: your SSH key and a hostname |
 
-Apply it and watch the clone:
+Apply it and wait until the VM is ready:
+
+> ⏳ **Be patient:** creating a VM can take 5 to 8 minutes, and up to 10 on a busy cluster. The `kubectl wait` command returns by itself when the VM is ready; don't cancel it.
 
 ```bash
-cd ~/txlf/ansible
+cd ~/txlf/workshop
 kubectl apply -f manifests/02-vm-clone-live.yaml
-kubectl get dv -n demo-vms vm-clone-live-rootdisk -w
+kubectl wait vm/vm-clone-live -n demo-vms --for=condition=Ready --timeout=10m
+kubectl get dv -n demo-vms vm-clone-live-rootdisk
 ```
 
-Ctrl+C when the DataVolume shows `Succeeded`. A 10 GiB disk should be ready in seconds. Then:
+The DataVolume shows `Succeeded`. The disk clone itself usually takes seconds; most of the wait is the VM starting. Then:
 
 ```bash
 kubectl get vmi -n demo-vms vm-clone-live
-kubectl get volumesnapshot -n demo-vms
+kubectl get dv -n demo-vms vm-clone-live-rootdisk -o yaml | grep cloneType
 ```
 
-The VolumeSnapshot is what CDI used to make the clone.
+The last command shows `cloneType: snapshot`: CDI made the clone from a CSI snapshot of `golden-image`. The snapshot is temporary: CDI deletes it in seconds, as soon as the clone is done.
 
 ## Every VM disk you have
 

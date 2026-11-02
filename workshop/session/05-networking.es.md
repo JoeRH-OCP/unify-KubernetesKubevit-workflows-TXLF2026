@@ -63,7 +63,7 @@ Ahora cualquier Pod del cluster alcanza `vm-live-ssh.demo-vms.svc:22`.
 
 ## Más de una red
 
-Algunas VMs también necesitan estar en una VLAN existente o en la red del data center. KubeVirt soporta interfaces secundarias con Multus: un `NetworkAttachmentDefinition` más un bridge de Linux configurado en los nodos (por ejemplo, con el operador NMState). Así la VM tiene una NIC en la red de Pods y otra directamente en la red física. Consulta `ansible/manifests/06-vm-secondary-net.yaml` para ver un ejemplo; no está habilitado en los clusters del workshop.
+Algunas VMs también necesitan estar en una VLAN existente o en la red del data center. KubeVirt soporta interfaces secundarias con Multus: un `NetworkAttachmentDefinition` más un bridge de Linux configurado en los nodos (por ejemplo, con el operador NMState). Así la VM tiene una NIC en la red de Pods y otra directamente en la red física. Consulta `workshop/manifests/06-vm-secondary-net.yaml` para ver un ejemplo; no está habilitado en los clusters del workshop.
 
 ## Checkpoint
 

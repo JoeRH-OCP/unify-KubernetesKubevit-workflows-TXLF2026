@@ -193,8 +193,9 @@ Then use `ansible-playbook` instead of `ansible-navigator run`. Without `figlet`
 ## Repository layout
 
 Everything lives in this `ansible/` folder, which sits inside the larger
-workshop repository. Run every command (`ansible-navigator`, `ansible-builder`,
-`kubectl apply -f manifests/...`) from here.
+workshop repository. Run every command (`ansible-navigator`, `ansible-builder`)
+from here. The hand-written YAML for `kubectl apply` on stage lives in
+`../workshop/manifests/`, next to the workshop pages that use it.
 
 ```
 ansible/
@@ -217,7 +218,6 @@ ansible/
 │   ├── demo_network/       # NNCP Linux bridge + NAD (optional)
 │   ├── demo_vms/           # golden-image, VMs, clones, migrate, snapshot, reset, verify
 │   └── teardown/           # reverse of everything (confirm_teardown)
-├── manifests/          # hand-written YAML for `kubectl apply` on stage
 ├── files/branding/     # TXLF logos (pinned commit, see NOTICE)
 ├── scripts/fetch-branding.sh  scripts/run-clusters.sh
 ├── clusters/           # per-cluster kubeconfig, vars, reports, logs (git-ignored)
@@ -385,7 +385,6 @@ Set up the terminal first, in this `ansible/` folder:
 ```bash
 export KUBECONFIG=~/.kube/txlf-lab
 kubectl config set-context --current --namespace=demo-vms
-alias k=kubectl
 ```
 
 ### 1. Welcome (1 min)
@@ -397,18 +396,19 @@ Show the OpenShift console in the browser:
 ### 2. KubeVirt is just Kubernetes (2 min)
 
 ```bash
-k get kubevirt -n kubevirt -o 'custom-columns=NAME:.metadata.name,VERSION:.status.observedKubeVirtVersion,PHASE:.status.phase'
-k api-resources --api-group=kubevirt.io
-k get pods -n kubevirt
+kubectl get kubevirt -n kubevirt -o 'custom-columns=NAME:.metadata.name,VERSION:.status.observedKubeVirtVersion,PHASE:.status.phase'
+kubectl api-resources --api-group=kubevirt.io
+kubectl get pods -n kubevirt
 ```
 
 ### 3. A VM from a container image, live (4 min)
 
 ```bash
-./manifests/00-ssh-key.sh
-k apply -f manifests/01-vm-live.yaml
-k get vm,vmi vm-live -w                     # Ctrl-C when Running
-k get pod -l vm.kubevirt.io/name=vm-live -o wide
+../workshop/manifests/00-ssh-key.sh
+kubectl apply -f ../workshop/manifests/01-vm-live.yaml
+kubectl wait vm/vm-live --for=condition=Ready --timeout=10m   # 5-8 min, up to 10
+kubectl get vm,vmi vm-live
+kubectl get pod -l vm.kubevirt.io/name=vm-live -o wide
 virtctl ssh fedora@vm/vm-live               # show the motd, `uname -a`, exit
 virtctl console vm-quick                    # vm-quick: TXLF /etc/issue banner (Ctrl-] to exit)
 ```
@@ -416,18 +416,19 @@ virtctl console vm-quick                    # vm-quick: TXLF /etc/issue banner (
 ### 4. Storage: golden image and snapshot clones (3 min)
 
 ```bash
-k get dv,pvc golden-image                   # Block, RWX, ocs-external-storagecluster-ceph-rbd
-k get storageprofile ocs-external-storagecluster-ceph-rbd -o jsonpath='{.status}' | jq
-k apply -f manifests/02-vm-clone-live.yaml
-k get dv vm-clone-live-rootdisk -w          # CSI snapshot clone: done in seconds
-k get volumesnapshot
+kubectl get dv,pvc golden-image                   # Block, RWX, ocs-external-storagecluster-ceph-rbd
+kubectl get storageprofile ocs-external-storagecluster-ceph-rbd -o jsonpath='{.status}' | jq
+kubectl apply -f ../workshop/manifests/02-vm-clone-live.yaml
+kubectl wait vm/vm-clone-live --for=condition=Ready --timeout=10m
+kubectl get dv vm-clone-live-rootdisk             # CSI snapshot clone: the disk takes seconds
+kubectl get dv vm-clone-live-rootdisk -o yaml | grep cloneType   # snapshot (CDI deletes its temporary VolumeSnapshot)
 ```
 
 ### 5. Scale with Ansible + UI (3 min)
 
 ```bash
 ansible-navigator run demo.yml --tags scale -e clone_count=5
-k get vm -l app.kubernetes.io/component=clone
+kubectl get vm -l app.kubernetes.io/component=clone
 ```
 
 Show **kubevirt-manager** in the browser (TXLF branding), and the VMs on their nodes.
@@ -437,10 +438,10 @@ Show **kubevirt-manager** in the browser (TXLF branding), and the VMs on their n
 Open `https://vm-web.apps.<domain>`. It shows the node and refreshes every 2 seconds.
 
 ```bash
-k get vmi vm-web -o wide                    # current NODENAME
-virtctl migrate vm-web                      # or: k create -f manifests/03-migration.yaml
-k get vmim -w                               # Scheduling → Running → Succeeded
-k get vmi vm-web -o wide                    # new NODENAME
+kubectl get vmi vm-web -o wide                    # current NODENAME
+MIG=$(kubectl create -f ../workshop/manifests/03-migration.yaml -o name)   # MIG = name of the new migration
+kubectl wait $MIG --for=jsonpath='{.status.phase}'=Succeeded --timeout=5m
+kubectl get vmi vm-web -o wide                    # new NODENAME
 ```
 
 The landing page shows "Live migration in progress", then the new node flashes in orange, without a page reload.
@@ -448,8 +449,8 @@ The landing page shows "Live migration in progress", then the new node flashes i
 ### 7. Snapshot and restore (5 min)
 
 ```bash
-k apply -f manifests/04-snapshot.yaml
-k get vmsnapshot vm-web-snap-live -w        # READYTOUSE true
+kubectl apply -f ../workshop/manifests/04-snapshot.yaml
+kubectl wait vmsnapshot/vm-web-snap-live --for=jsonpath='{.status.readyToUse}'=true --timeout=5m
 virtctl ssh txlf@vm/vm-web -c 'sudo rm -f /usr/share/nginx/html/index.html'
 ```
 
@@ -457,10 +458,10 @@ Reload the landing page: nginx returns 403. "Oops."
 
 ```bash
 virtctl stop vm-web --wait
-k apply -f manifests/05-restore.yaml
-k get vmrestore vm-web-restore-live -w      # COMPLETE true
+kubectl apply -f ../workshop/manifests/05-restore.yaml
+kubectl wait vmrestore/vm-web-restore-live --for=jsonpath='{.status.complete}'=true --timeout=5m
 virtctl start vm-web
-k get vmi vm-web -w                         # Running (~40 s)
+kubectl wait vm/vm-web --for=condition=Ready --timeout=10m
 ```
 
 Reload the landing page: it's back.
@@ -470,9 +471,9 @@ Reload the landing page: it's back.
 This step needs `enable_secondary_net: true`.
 
 ```bash
-k get nncp,nnce
-k get net-attach-def demo-lan -o yaml
-k apply -f manifests/06-vm-secondary-net.yaml
+kubectl get nncp,nnce
+kubectl get net-attach-def demo-lan -o yaml
+kubectl apply -f ../workshop/manifests/06-vm-secondary-net.yaml
 virtctl ssh fedora@vm/vm-net-live -c 'ip -br addr'
 ```
 
@@ -510,7 +511,7 @@ Show the repo link (`demo_repo_url` on the landing page) and the event site.
   4. https://2026.texaslinuxfest.org/
 - [ ] Toggle the console theme light/dark once to check both masthead logos.
 - [ ] Terminal: large font, `KUBECONFIG` set, namespace `demo-vms`, `ssh-add` done, `virtctl version` matches the server.
-- [ ] `manifests/00-ssh-key.sh` already run. Make sure `vm-live`, `vm-clone-live` and `vm-net-live` **don't** exist yet.
+- [ ] `workshop/manifests/00-ssh-key.sh` already run. Make sure `vm-live`, `vm-clone-live` and `vm-net-live` **don't** exist yet.
 - [ ] Laptop on power, notifications off, screen mirroring tested.
 
 ---
@@ -613,7 +614,7 @@ Everything else in this repo comes from quay.io, github.com and fedoraproject.or
 
 ### kubevirt-manager shows no NICs, disks or graphs
 
-- **Empty Networking/Disks tabs:** kubevirt-manager 1.5.4 reads `spec.template.spec.domain.resources.requests.memory` without checking it exists. VMs that only set `domain.memory.guest` break the page before the NICs and disks load. The demo VMs and `manifests/` set `resources.requests.memory` (plus `cpu.sockets`/`threads`) for this reason. Do the same in any VM you want to see there.
+- **Empty Networking/Disks tabs:** kubevirt-manager 1.5.4 reads `spec.template.spec.domain.resources.requests.memory` without checking it exists. VMs that only set `domain.memory.guest` break the page before the NICs and disks load. The demo VMs and `workshop/manifests/` set `resources.requests.memory` (plus `cpu.sockets`/`threads`) for this reason. Do the same in any VM you want to see there.
 - **No graphs:** check the metrics backend in the `kubevirt_manager` role output.
 
   ```bash
