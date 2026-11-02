@@ -36,4 +36,5 @@ cnv_argocd_marker_kinds: [HyperConverged, ForkliftController, VirtualMachine, Vi
 cnv_argocd_marker_subscriptions: [kubevirt-hyperconverged, mtv-operator]
 # HCO can deadlock on delete (its webhook needs the SSP it just removed); after
 # this timeout the role removes the operator (Subscription/CSV) and then the finalizer.
-cnv_hco_wait_timeout: 600
+# A normal delete takes 2 to 4 minutes; a deadlocked one never finishes.
+cnv_hco_wait_timeout: 300
