@@ -386,7 +386,6 @@ Set up the terminal first, in this `ansible/` folder:
 export KUBECONFIG=~/.kube/txlf-lab
 kubectl config set-context --current --namespace=demo-vms
 alias k=kubectl
-M=../workshop/manifests                     # hand-written demo YAML
 ```
 
 ### 1. Welcome (1 min)
@@ -406,8 +405,8 @@ k get pods -n kubevirt
 ### 3. A VM from a container image, live (4 min)
 
 ```bash
-$M/00-ssh-key.sh
-k apply -f $M/01-vm-live.yaml
+../workshop/manifests/00-ssh-key.sh
+k apply -f ../workshop/manifests/01-vm-live.yaml
 k wait vm/vm-live --for=condition=Ready --timeout=10m   # 5-8 min, up to 10
 k get vm,vmi vm-live
 k get pod -l vm.kubevirt.io/name=vm-live -o wide
@@ -420,7 +419,7 @@ virtctl console vm-quick                    # vm-quick: TXLF /etc/issue banner (
 ```bash
 k get dv,pvc golden-image                   # Block, RWX, ocs-external-storagecluster-ceph-rbd
 k get storageprofile ocs-external-storagecluster-ceph-rbd -o jsonpath='{.status}' | jq
-k apply -f $M/02-vm-clone-live.yaml
+k apply -f ../workshop/manifests/02-vm-clone-live.yaml
 k wait vm/vm-clone-live --for=condition=Ready --timeout=10m
 k get dv vm-clone-live-rootdisk             # CSI snapshot clone: the disk takes seconds
 k get volumesnapshot
@@ -441,7 +440,7 @@ Open `https://vm-web.apps.<domain>`. It shows the node and refreshes every 2 sec
 
 ```bash
 k get vmi vm-web -o wide                    # current NODENAME
-MIG=$(k create -f $M/03-migration.yaml -o name)   # or: virtctl migrate vm-web
+MIG=$(k create -f ../workshop/manifests/03-migration.yaml -o name)   # MIG = name of the new migration
 k wait $MIG --for=jsonpath='{.status.phase}'=Succeeded --timeout=5m
 k get vmi vm-web -o wide                    # new NODENAME
 ```
@@ -451,7 +450,7 @@ The landing page shows "Live migration in progress", then the new node flashes i
 ### 7. Snapshot and restore (5 min)
 
 ```bash
-k apply -f $M/04-snapshot.yaml
+k apply -f ../workshop/manifests/04-snapshot.yaml
 k wait vmsnapshot/vm-web-snap-live --for=jsonpath='{.status.readyToUse}'=true --timeout=5m
 virtctl ssh txlf@vm/vm-web -c 'sudo rm -f /usr/share/nginx/html/index.html'
 ```
@@ -460,7 +459,7 @@ Reload the landing page: nginx returns 403. "Oops."
 
 ```bash
 virtctl stop vm-web --wait
-k apply -f $M/05-restore.yaml
+k apply -f ../workshop/manifests/05-restore.yaml
 k wait vmrestore/vm-web-restore-live --for=jsonpath='{.status.complete}'=true --timeout=5m
 virtctl start vm-web
 k wait vm/vm-web --for=condition=Ready --timeout=10m
@@ -475,7 +474,7 @@ This step needs `enable_secondary_net: true`.
 ```bash
 k get nncp,nnce
 k get net-attach-def demo-lan -o yaml
-k apply -f $M/06-vm-secondary-net.yaml
+k apply -f ../workshop/manifests/06-vm-secondary-net.yaml
 virtctl ssh fedora@vm/vm-net-live -c 'ip -br addr'
 ```
 

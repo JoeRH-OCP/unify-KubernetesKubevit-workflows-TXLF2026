@@ -22,6 +22,8 @@ kubectl wait $MIG -n demo-vms --for=jsonpath='{.status.phase}'=Succeeded --timeo
 kubectl get vmi -n demo-vms vm-web -o wide
 ```
 
+`virtctl migrate` crea un objeto de migración con un nombre aleatorio. La segunda línea guarda ese nombre en la variable de shell `MIG`, para que `kubectl wait` sepa qué migración esperar.
+
 Observa el navegador mientras el comando espera: la página muestra "Live migration in progress" y luego el nombre del nodo nuevo parpadea en naranja. La página nunca se recarga y nginx sigue respondiendo. El comando termina cuando la migración está en `Succeeded`, y `NODENAME` es otro nodo.
 
 Desde la interfaz, el botón **»** (**Live Migrate**) en la página de `vm-web` en kubevirt-manager hace lo mismo.

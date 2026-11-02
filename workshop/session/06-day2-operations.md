@@ -22,6 +22,8 @@ kubectl wait $MIG -n demo-vms --for=jsonpath='{.status.phase}'=Succeeded --timeo
 kubectl get vmi -n demo-vms vm-web -o wide
 ```
 
+`virtctl migrate` starts a migration object with a random name. The second line saves that name in the shell variable `MIG`, so `kubectl wait` knows which migration to wait for.
+
 Watch the browser while the command waits: the page shows "Live migration in progress", then the new node name flashes in orange. The page never reloads and nginx keeps answering. The command returns when the migration is `Succeeded`, and `NODENAME` is a different node.
 
 From the UI, the **»** (**Live Migrate**) button on the `vm-web` page in kubevirt-manager does the same.
