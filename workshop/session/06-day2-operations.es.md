@@ -17,10 +17,12 @@ Anota el `NODENAME`. Ahora mueve la VM en ejecución:
 
 ```bash
 virtctl migrate vm-web -n demo-vms
-kubectl get vmim -n demo-vms -w
+MIG=$(kubectl get vmim -n demo-vms --sort-by=.metadata.creationTimestamp -o name | tail -1)
+kubectl wait $MIG -n demo-vms --for=jsonpath='{.status.phase}'=Succeeded --timeout=5m
+kubectl get vmi -n demo-vms vm-web -o wide
 ```
 
-Observa el navegador: la página muestra "Live migration in progress" y luego el nombre del nodo nuevo parpadea en naranja. La página nunca se recarga y nginx sigue respondiendo. Presiona Ctrl+C cuando la migración muestre `Succeeded`.
+Observa el navegador mientras el comando espera: la página muestra "Live migration in progress" y luego el nombre del nodo nuevo parpadea en naranja. La página nunca se recarga y nginx sigue respondiendo. El comando termina cuando la migración está en `Succeeded`, y `NODENAME` es otro nodo.
 
 Desde la interfaz, el botón **»** (**Live Migrate**) en la página de `vm-web` en kubevirt-manager hace lo mismo.
 
@@ -45,10 +47,12 @@ kubectl get vm vm-web -n demo-vms -o jsonpath='{.spec.template.spec.evictionStra
 NODE=$(kubectl get vmi -n demo-vms vm-web -o jsonpath='{.status.nodeName}')
 kubectl cordon $NODE
 virtctl migrate vm-web -n demo-vms
-kubectl get vmi -n demo-vms vm-web -o wide -w
+MIG=$(kubectl get vmim -n demo-vms --sort-by=.metadata.creationTimestamp -o name | tail -1)
+kubectl wait $MIG -n demo-vms --for=jsonpath='{.status.phase}'=Succeeded --timeout=5m
+kubectl get vmi -n demo-vms vm-web -o wide
 ```
 
-Presiona Ctrl+C cuando cambie el nodo y luego siempre deshaz el cordon:
+La VM salió del nodo con cordon. Siempre deshaz el cordon:
 
 ```bash
 kubectl uncordon $NODE
@@ -79,10 +83,11 @@ spec:
     kind: VirtualMachine
     name: vm-clone-live
 EOF
-kubectl get vmsnapshot -n demo-vms before-oops -w
+kubectl wait vmsnapshot/before-oops -n demo-vms --for=jsonpath='{.status.readyToUse}'=true --timeout=5m
+kubectl get vmsnapshot -n demo-vms before-oops
 ```
 
-Presiona Ctrl+C cuando `READYTOUSE` sea `true`. El QEMU guest agent congeló los filesystems del guest para que el snapshot sea consistente, y Ceph tomó un snapshot CSI del disco.
+`READYTOUSE` es `true`. El QEMU guest agent congeló los filesystems del guest para que el snapshot sea consistente, y Ceph tomó un snapshot CSI del disco.
 
 Ahora, el error:
 
@@ -108,14 +113,15 @@ spec:
     name: vm-clone-live
   virtualMachineSnapshotName: before-oops
 EOF
-kubectl get vmrestore -n demo-vms undo-oops -w
+kubectl wait vmrestore/undo-oops -n demo-vms --for=jsonpath='{.status.complete}'=true --timeout=5m
 ```
 
-Presiona Ctrl+C cuando `COMPLETE` sea `true`, luego inicia la VM y revisa el archivo:
+Cuando termine la restauración, inicia la VM y revisa el archivo. Arrancarla puede tardar unos minutos:
 
 ```bash
 virtctl start vm-clone-live -n demo-vms
-kubectl wait vmi/vm-clone-live -n demo-vms --for=condition=AgentConnected --timeout=180s
+kubectl wait vm/vm-clone-live -n demo-vms --for=condition=Ready --timeout=10m
+kubectl wait vmi/vm-clone-live -n demo-vms --for=condition=AgentConnected --timeout=5m
 virtctl ssh fedora@vm/vm-clone-live -n demo-vms -c 'cat /srv/data.txt'
 ```
 

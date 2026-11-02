@@ -29,11 +29,11 @@ La terminal corre en un Pod dentro de tu cluster, así que todos los comandos de
 
 Ejecuta todo a partir de aquí **en la terminal web**: es un contenedor Linux dentro de tu cluster, así que no se instala nada en tu laptop.
 
-Clona el repositorio del workshop; todos los manifests que necesitas están en `ansible/manifests`:
+Clona el repositorio del workshop; todos los manifests que necesitas están en `workshop/manifests`:
 
 ```bash
 git clone https://github.com/JoeRH-OCP/unify-KubernetesKubevit-workflows-TXLF2026.git ~/txlf
-cd ~/txlf/ansible
+cd ~/txlf/workshop
 ls manifests
 ```
 
@@ -41,7 +41,7 @@ ls manifests
 
 ```bash
 mkdir -p ~/txlf && curl -fsSL https://github.com/JoeRH-OCP/unify-KubernetesKubevit-workflows-TXLF2026/archive/refs/heads/main.tar.gz | tar -xz --strip-components=1 -C ~/txlf
-cd ~/txlf/ansible
+cd ~/txlf/workshop
 ```
 
 ## Obtén virtctl

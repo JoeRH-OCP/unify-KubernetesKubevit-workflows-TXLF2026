@@ -4,7 +4,6 @@ exclude_paths:
   - .cache/
   - collections/
   - context/
-  - manifests/   # plain Kubernetes YAML, not Ansible
   - reports/     # generated per run
   - clusters/    # generated per run (multi-cluster)
 skip_list:

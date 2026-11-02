@@ -19,6 +19,8 @@ Este ejercicio final combina importación de imagen con CDI, almacenamiento PVC,
 
 Revisa [el manifiesto](../manifests/capstone-functional-vm.yaml), reemplaza los marcadores y aplícalo:
 
+> ⏳ **Ten paciencia:** crear una VM puede tardar de 5 a 8 minutos, y hasta 10 en un cluster ocupado. El comando `kubectl wait` termina solo cuando la VM está lista; no lo canceles.
+
 ```bash
 kubectl apply -f workshop/manifests/capstone-functional-vm.yaml
 kubectl -n kubevirt-workshop get datavolume,pvc,vm,vmi,svc

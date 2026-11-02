@@ -1,8 +1,8 @@
 # Hand-written manifests for the live demo
 
-These files are **not** used by Ansible. Run them from the `ansible/` folder
+These files are **not** used by Ansible. Run them from the `workshop/` folder
 (`kubectl apply -f manifests/...`). They exist so you can show plain
-`kubectl apply` on stage. They assume the defaults from `../group_vars/all/`
+`kubectl apply` on stage. They assume the defaults from `../../ansible/group_vars/all/`
 (namespace `demo-vms`, StorageClass `ocs-external-storagecluster-ceph-rbd`,
 `golden-image` already imported). Edit them if your infra.yml differs.
 

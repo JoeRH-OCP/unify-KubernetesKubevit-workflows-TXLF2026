@@ -59,10 +59,11 @@ spec:
   name: kubevirt-hyperconverged
   channel: stable
 EOF
-oc get csv -n openshift-cnv -w
+until CSV=$(oc get subscription hco-operatorhub -n openshift-cnv -o jsonpath='{.status.installedCSV}') && [ -n "$CSV" ]; do sleep 10; done
+oc wait csv/$CSV -n openshift-cnv --for=jsonpath='{.status.phase}'=Succeeded --timeout=15m
 ```
 
-Presiona Ctrl+C cuando la fase del CSV sea `Succeeded`. Luego crea el recurso HyperConverged, el único objeto que configura todo el stack:
+El ciclo espera a que OLM elija la versión del operador; `oc wait` termina cuando su CSV está en `Succeeded` (unos minutos). Luego crea el recurso HyperConverged, el único objeto que configura todo el stack:
 
 ```bash
 oc apply -f - <<'EOF'
@@ -109,10 +110,12 @@ oc get virtualmachineclusterpreferences
 2. En la pestaña **InstanceTypes**, en **Select volume to boot from**, haz clic en **fedora**.
 3. En **Select InstanceType**, elige **U series**, tamaño **small** (`u1.small`).
 4. En **VirtualMachine details**, elige el proyecto `demo-vms`, escribe el nombre `vm-catalog` y agrega tu llave SSH pública.
-5. Haz clic en **Create VirtualMachine**. Se abre la página de la VM y la VM arranca.
+5. Haz clic en **Create VirtualMachine**. Se abre la página de la VM y la VM arranca. Espera a que su estado sea **Running**: puede tardar de 5 a 8 minutos, y hasta 10 en un cluster ocupado.
 6. Prueba las pestañas: **Overview** (estado y métricas), **Console** (VNC y serial en el navegador), **Snapshots**, y el menú **Actions** (**Stop**, **Restart**, **Migrate**).
 
 ## La misma VM en YAML
+
+> ⏳ **Ten paciencia:** crear una VM puede tardar de 5 a 8 minutos, y hasta 10 en un cluster ocupado. El comando `oc wait` termina solo cuando la VM está lista; no lo canceles.
 
 El catálogo escribe un `VirtualMachine` normal. Esta es la misma VM a mano; fíjate que no tiene CPU, memoria ni bus de disco, porque el instance type y la preferencia los ponen:
 
@@ -164,6 +167,7 @@ spec:
               #cloud-config
               hostname: vm-catalog-yaml
 EOF
+oc wait vm/vm-catalog-yaml -n demo-vms --for=condition=Ready --timeout=10m
 oc get vm,dv -n demo-vms vm-catalog-yaml
 ```
 
