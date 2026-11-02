@@ -69,3 +69,11 @@
         + (verify_ingress.resources | map(attribute='spec.rules') | flatten | map(attribute='host')
            | unique | map('regex_replace', '^(.*)$', '  https://\\1') | list)
       }}
+
+# Before the workshop: OpenShift Virtualization must not have come back
+# (for example through Argo CD) next to upstream KubeVirt.
+- name: Check that OpenShift Virtualization is still gone
+  ansible.builtin.include_role:
+    name: cnv_removal
+    tasks_from: assert_removed.yml
+  when: virt_mode | default('kubevirt') == 'kubevirt'

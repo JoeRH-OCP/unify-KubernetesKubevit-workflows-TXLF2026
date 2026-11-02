@@ -74,3 +74,9 @@
         invalidate_cache: true
       register: cnv_refresh
       changed_when: false
+
+# Also runs when OpenShift Virtualization was not detected: a partial leftover
+# (Subscription, namespace, Argo CD auto-sync) must not reach the workshop.
+- name: Make sure OpenShift Virtualization is completely gone
+  ansible.builtin.include_tasks: assert_removed.yml
+  when: not ansible_check_mode
