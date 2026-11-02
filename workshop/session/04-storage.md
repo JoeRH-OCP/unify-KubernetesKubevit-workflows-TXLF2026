@@ -139,7 +139,7 @@ kubectl get vmi -n demo-vms vm-clone-live
 kubectl get dv -n demo-vms vm-clone-live-rootdisk -o yaml | grep cloneType
 ```
 
-The last command shows `cloneType: snapshot`: CDI made the clone from a CSI snapshot of `golden-image`. It deletes that temporary VolumeSnapshot when the clone is done, so `kubectl get volumesnapshot` shows nothing.
+The last command shows `cloneType: snapshot`: CDI made the clone from a CSI snapshot of `golden-image`. The snapshot is temporary: CDI deletes it in seconds, as soon as the clone is done.
 
 ## Every VM disk you have
 
