@@ -8,7 +8,7 @@ These files are **not** used by Ansible. Run them from the `workshop/` folder
 
 | File | What it shows |
 |---|---|
-| 00-ssh-key.sh | Puts your SSH public key in a Secret (used by 01 and 02) |
+| 00-ssh-key.sh | Creates an SSH key if needed and adds it to the Secret `demo-ssh-key` (used by 01, 02 and 06); safe to run once per person on a shared cluster |
 | 01-vm-live.yaml | VM from a containerDisk, SSH key injected by KubeVirt |
 | 02-vm-clone-live.yaml | VM whose disk is a snapshot clone of golden-image |
 | 03-migration.yaml | Live migration of vm-web |
