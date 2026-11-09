@@ -60,11 +60,12 @@ virtctl version
 ## Create your SSH key
 
 ```bash
-test -f ~/.ssh/id_ed25519 || ssh-keygen -t ed25519 -N '' -f ~/.ssh/id_ed25519
 ./manifests/00-ssh-key.sh
 ```
 
-The script stores your public key in a Secret. KubeVirt injects it into the VMs you create, so `virtctl ssh` works without passwords.
+The script creates an SSH key if you don't have one yet, then adds your public key to the Secret `demo-ssh-key`. KubeVirt injects every key in that Secret into the VMs you create, so `virtctl ssh` works without passwords.
+
+> 👥 **Sharing a cluster?** Each person runs the script once. It adds your key next to your partner's and never replaces it, so you can both `virtctl ssh` into every VM created afterwards. Run it **before** you create your first VM: a VM without the Secret stays in `Scheduling`.
 
 ## Find your URLs
 
