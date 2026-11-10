@@ -1,0 +1,64 @@
+---
+# OpenShift Virtualization must be completely gone when upstream KubeVirt runs:
+# a leftover HyperConverged, or an operator or Argo CD Application that brings
+# it back, fights the upstream install during the workshop. Read-only; fails
+# with the list of what is left. Used at the end of cnv_removal and by verify.yml.
+- name: Look for OpenShift Virtualization leftovers
+  kubernetes.core.k8s_info:
+    api_version: "{{ item.api_version }}"
+    kind: "{{ item.kind }}"
+    name: "{{ item.name | default(omit) }}"
+    namespace: "{{ item.namespace | default(omit) }}"
+  loop:
+    - { api_version: hco.kubevirt.io/v1beta1, kind: HyperConverged }
+    - { api_version: apiextensions.k8s.io/v1, kind: CustomResourceDefinition, name: hyperconvergeds.hco.kubevirt.io }
+    - { api_version: operators.coreos.com/v1alpha1, kind: Subscription }
+    - { api_version: operators.coreos.com/v1alpha1, kind: ClusterServiceVersion, namespace: "{{ cnv_namespace }}" }
+    - { api_version: v1, kind: Namespace, name: "{{ cnv_namespace }}" }
+    - { api_version: argoproj.io/v1alpha1, kind: Application }
+  loop_control:
+    label: "{{ item.kind }}"
+  register: cnv_left
+
+- name: List what is left
+  vars:
+    left_hco: "{{ cnv_left.results[0].resources | default([]) }}"
+    left_crd: "{{ cnv_left.results[1].resources | default([]) }}"
+    left_subs: >-
+      {{ cnv_left.results[2].resources | default([]) | selectattr('spec.name', 'equalto', 'kubevirt-hyperconverged') | list }}
+    left_csvs: >-
+      {{ cnv_left.results[3].resources | default([]) | selectattr('metadata.name', 'match', 'kubevirt-hyperconverged') | list }}
+    left_ns: "{{ cnv_left.results[4].resources | default([]) }}"
+    # Applications with auto-sync that deploy the HyperConverged or its Subscription.
+    left_argo: >-
+      {%- set out = [] -%}
+      {%- for a in cnv_left.results[5].resources | default([]) -%}
+      {%-   if (a.spec.syncPolicy | default({}, true)).automated is defined -%}
+      {%-     for r in a.status.resources | default([], true) -%}
+      {%-       if (r.kind == 'HyperConverged' or (r.kind == 'Subscription' and r.name == 'kubevirt-hyperconverged'))
+                  and (a.metadata.namespace ~ '/' ~ a.metadata.name) not in out -%}
+      {%-         set _ = out.append(a.metadata.namespace ~ '/' ~ a.metadata.name) -%}
+      {%-       endif -%}
+      {%-     endfor -%}
+      {%-   endif -%}
+      {%- endfor -%}
+      {{ out }}
+  ansible.builtin.set_fact:
+    cnv_leftovers: >-
+      {{ (left_hco | map(attribute='metadata') | map(attribute='name') | map('regex_replace', '^', 'HyperConverged/') | list)
+         + (left_crd | map(attribute='metadata.name') | map('regex_replace', '^', 'CRD/') | list)
+         + (left_subs | map(attribute='metadata') | map(attribute='namespace') | map('regex_replace', '^(.*)$', 'Subscription/\1/kubevirt-hyperconverged') | list)
+         + (left_csvs | map(attribute='metadata.name') | map('regex_replace', '^', 'CSV/') | list)
+         + (left_ns | map(attribute='metadata.name') | map('regex_replace', '^', 'Namespace/') | list)
+         + (left_argo | map('regex_replace', '^', 'Argo CD Application with auto-sync/') | list) }}
+
+- name: Require OpenShift Virtualization to be gone
+  ansible.builtin.assert:
+    that: cnv_leftovers | length == 0
+    fail_msg: >-
+      OpenShift Virtualization is not completely removed, so it can conflict with
+      upstream KubeVirt during the workshop. Left: {{ cnv_leftovers | join(', ') }}.
+      A HyperConverged or Subscription: re-run site.yml -e confirm_cnv_removal=true.
+      An Argo CD Application: turn off its auto-sync (the same re-run does it when the
+      operator is back). Only a CSV, CRD or namespace: delete it by hand.
+    success_msg: "OpenShift Virtualization is gone: no HyperConverged, operator, namespace or Argo CD auto-sync left."

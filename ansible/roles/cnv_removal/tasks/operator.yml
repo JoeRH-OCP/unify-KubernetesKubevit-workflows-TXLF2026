@@ -5,7 +5,9 @@
     hco_ns: "{{ pf_hco.resources[0].metadata.namespace }}"
     hco_name: "{{ pf_hco.resources[0].metadata.name }}"
   block:
-    - name: Delete the HyperConverged CR and wait until it is gone
+    # A timeout here is expected on some clusters (see the fallback below), so it
+    # is not an error; any other API error still fails the task.
+    - name: Delete the HyperConverged CR and wait for it
       kubernetes.core.k8s:
         state: absent
         api_version: hco.kubevirt.io/v1beta1
@@ -14,15 +16,36 @@
         name: "{{ hco_name }}"
         wait: true
         wait_timeout: "{{ cnv_hco_wait_timeout }}"
-  rescue:
+      register: hco_delete
+      failed_when:
+        - hco_delete is failed
+        - "'Timed out waiting' not in (hco_delete.msg | default(''))"
+
+    - name: Check whether the HyperConverged CR is still terminating
+      kubernetes.core.k8s_info:
+        api_version: hco.kubevirt.io/v1beta1
+        kind: HyperConverged
+        namespace: "{{ hco_ns }}"
+        name: "{{ hco_name }}"
+      register: hco_left
+
+- name: Fallback for a HyperConverged CR stuck in deletion
+  when:
+    - pf_hco.resources | default([]) | length > 0
+    - hco_left.resources | default([]) | length > 0
+    - not ansible_check_mode
+  vars:
+    hco_ns: "{{ pf_hco.resources[0].metadata.namespace }}"
+    hco_name: "{{ pf_hco.resources[0].metadata.name }}"
+  block:
     # Known HCO deadlock: it removes SSP, then its own validating webhook rejects
     # the finalizer removal because SSP is missing. Removing the operator (CSV)
     # also removes its webhooks; then the finalizer can go.
     - name: Explain the fallback
       ansible.builtin.debug:
         msg: >-
-          HyperConverged is still terminating after {{ cnv_hco_wait_timeout }}s (HCO webhook deadlock).
-          Removing the operator first, then the finalizer.
+          HyperConverged is still terminating after {{ cnv_hco_wait_timeout }}s (known HCO webhook
+          deadlock, this is expected). Removing the operator first, then the finalizer.
 
     - name: Wait until HCO removed its components (KubeVirt, CDI, SSP, NetworkAddonsConfig)
       ansible.builtin.include_tasks: hco_children.yml

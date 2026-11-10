@@ -58,14 +58,22 @@
           '',
           'VMs (' ~ demo_namespace ~ '):'
         ]
-        + (verify_vms.results[0].resources | map(attribute='metadata.name') | map('regex_replace', '^(.*)$', '  \\1') | list
+        + (verify_vms.results[0].resources | map(attribute='metadata.name') | map('regex_replace', '^', '  ') | list
            | zip(verify_vms.results[0].resources | map(attribute='status.printableStatus', default='?'))
            | map('join', '  status=') | list)
         + ['', 'Running VMIs and their nodes:']
-        + (verify_vmis | map(attribute='metadata.name') | map('regex_replace', '^(.*)$', '  \\1') | list
+        + (verify_vmis | map(attribute='metadata.name') | map('regex_replace', '^', '  ') | list
            | zip(verify_vmis | map(attribute='status.nodeName', default='-'))
            | map('join', '  node=') | list)
         + ['', 'URLs:']
         + (verify_ingress.resources | map(attribute='spec.rules') | flatten | map(attribute='host')
-           | unique | map('regex_replace', '^(.*)$', '  https://\\1') | list)
+           | unique | map('regex_replace', '^', '  https://') | list)
       }}
+
+# Before the workshop: OpenShift Virtualization must not have come back
+# (for example through Argo CD) next to upstream KubeVirt.
+- name: Check that OpenShift Virtualization is still gone
+  ansible.builtin.include_role:
+    name: cnv_removal
+    tasks_from: assert_removed.yml
+  when: virt_mode | default('kubevirt') == 'kubevirt'
