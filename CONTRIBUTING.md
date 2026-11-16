@@ -26,3 +26,7 @@ Thanks for helping improve **KubeVirt Without Fear**, the Texas Linux Fest 2026 
 ## Assets
 
 - PNGs used in the workshop have transparent backgrounds; see `workshop/assets/README.md` for credits and details.
+
+## Acknowledgments
+
+Prepared in collaboration by **psehgaft**, **san985tos**, **frankjunker87-arch** and **tec-girl**.
